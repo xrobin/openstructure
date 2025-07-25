@@ -366,7 +366,8 @@ def _ParseArgs():
         dest="lddt_pli_add_mdl_contacts",
         default=True,
         action="store_true",
-        help=("Add model contacts when computing LDDT-PLI."))
+        help=("Add model contacts when computing LDDT-PLI. "
+              "This is enabled by default."))
 
     parser.add_argument(
         "--no-lddt-pli-add-mdl-contacts",

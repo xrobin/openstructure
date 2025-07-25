@@ -671,7 +671,7 @@ Details on the usage (output of ``ost compare-ligand-structures --help``):
     --lddt-pli-radius LDDT_PLI_RADIUS
                           LDDT inclusion radius for LDDT-PLI.
     --lddt-pli-add-mdl-contacts
-                          Add model contacts when computing LDDT-PLI.
+                          Add model contacts when computing LDDT-PLI. This is enabled by default.
     --no-lddt-pli-add-mdl-contacts
                           DO NOT add model contacts when computing LDDT-PLI.
     --rmsd                Compute RMSD scores and store as key "rmsd".
