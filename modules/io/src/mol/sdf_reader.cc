@@ -362,28 +362,38 @@ void SDFReader::AddBond(const bond_data& bond_tuple, int line_num, mol::EntityHa
 
   try {
     type=boost::lexical_cast<int>(boost::trim_copy(s_type));
-    // From SDF spec:
+    // From SDF V2000 specification:
     // bond type      1 = Single, 2 = Double,       [Q] Values 4 through 8 are
     //                3 = Triple, 4 = Aromatic,     for SSS queries oniy.
     //                5 = Single or Double,
     //                6 = Single or Aromatic,
     //                7 = Double or Aromatic,
     //                8 = Any
-    if (type < 1 || type > 8) {
+    // SDF V3000 specification has two additional values:
+    //                9 = coordination
+    //                10 = hydrogen
+    int max_type = version_ == "V3000" ? 10 : 8;
+
+    if (type < 1 || type > max_type) {
       std::stringstream ss;
       ss << "Bad bond line " << line_num << ": Bond type number "
-         << std::to_string(type) << " not within accepted range (1-8).";
+         << std::to_string(type) << " not within accepted range "
+         << "(1-" << max_type << ").";
       if (profile_.fault_tolerant) {
         LOG_ERROR(ss.str());
       } else {
         throw IOException(ss.str());
       }
-    } else if (type > 3) {
+    } else if (type > 3 && type < 9) {
       std::stringstream ss;
       ss << "Bad bond line " << line_num << ": Bond type number "
          << std::to_string(type) << ": values 4-8 are reserved for queries, "
          << "should not appear in an SDF file.";
-        LOG_WARNING(ss.str());
+      if (profile_.fault_tolerant) {
+        LOG_ERROR(ss.str());
+      } else {
+        throw IOException(ss.str());
+      }
     }
   } catch(boost::bad_lexical_cast&) {
     std::stringstream ss;
