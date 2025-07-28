@@ -259,7 +259,7 @@ SDFReader::atom_data SDFReader::ParseAtom(const String& line, int line_num)
   String s_ele=line.substr(31,3);
   String s_charge=line.substr(36,3);
 
-  return std::make_tuple(anum, s_posx, s_posy, s_posz, s_ele, s_charge);
+  return std::make_tuple(anum, s_posx, s_posy, s_posz, s_ele, s_charge, false);
 }
 
 void SDFReader::AddAtom(const atom_data& atom_tuple, int line_num, mol::EntityHandle& ent,
@@ -267,7 +267,8 @@ void SDFReader::AddAtom(const atom_data& atom_tuple, int line_num, mol::EntityHa
 {
   int anum;
   String s_posx, s_posy, s_posz, s_ele, s_charge;
-  tie(anum, s_posx, s_posy, s_posz, s_ele, s_charge) = atom_tuple;
+  bool chg_charge;
+  tie(anum, s_posx, s_posy, s_posz, s_ele, s_charge, chg_charge) = atom_tuple;
 
   geom::Vec3 apos;
   try {
@@ -288,9 +289,15 @@ void SDFReader::AddAtom(const atom_data& atom_tuple, int line_num, mol::EntityHa
   Real charge=0.0;  
   try {
     charge=boost::lexical_cast<Real>(boost::trim_copy(s_charge));
-    if (charge!=0) {
-      charge=4-charge;
-    } //4-sdf_charge=real_charge if not 0
+    if (charge!=0 && !chg_charge) {
+      // From SDF V2000 Atom Block specification:
+      // charge 0, 1, 2, 3, 4, 5, 6, 7
+      // (0 if uncharged; 1, 2, 3 if positive charges where 1
+      // = +3, 2 = +2, 3 = +1; 4 if doublet radical; 5, 6, 7 if
+      // negative charges where 5 = -1, 6 = -2, 7 = -3)
+      // M CHG and V3000 CHG do not need to be transformed.
+      charge = 4 - charge;
+    }
   } catch(boost::bad_lexical_cast&) {
     String msg="Bad atom line %d: Can't convert charge"
                " '%s' to integral constant.";
@@ -621,7 +628,7 @@ SDFReader::atom_data SDFReader::ParseV3000Atom(const String& line, int line_num)
     throw IOException(str(format(msg) % s_anum % line_num));
   }
 
-  return std::make_tuple(anum, posx, posy, posz, atype, chg);
+  return std::make_tuple(anum, posx, posy, posz, atype, chg, true);
 }
 
 SDFReader::bond_data SDFReader::ParseV3000Bond(const String& line, int line_num)
