@@ -81,6 +81,33 @@ class TestSDF(unittest.TestCase):
     with self.assertRaises(Exception):
       ent = io.LoadSDF('testfiles/sdf/dative_bond.sdf')
 
+  def test_bond_types(self):
+    """Test that bond types are properly converted to V2000 format."""
+    v3000_ent = io.LoadSDF('testfiles/sdf_v3000/bcl.sdf')
+    # Find the magnesium atom:
+    mg_at = v3000_ent.FindAtom("00001_BCL", 1, "12")
+    for bond in mg_at.bonds:
+      if bond.first == v3000_ent.FindAtom("00001_BCL", 1, "11"):
+        self.assertEqual(bond.bond_order, 9)
+        break
+    else:
+      raise Exception("Magnesium atom partner (N 11) not found")
+    
+    # Now we know we have a coordination bond, we can write it out to SDFV2000:
+    PushVerbosityLevel(0)  # Expect message at Warning level
+    v2000_str = io.EntityToSDFStr(v3000_ent)
+    PopVerbosityLevel()
+    # We can read it without fault_tolerant
+    v2000_ent = io.SDFStrToEntity(v2000_str)
+    # Mg atom has been converted to a single bond:
+    v2000_mg_at = v2000_ent.FindAtom("00001_BCL", 1, "12")
+    for bond in v2000_mg_at.bonds:
+      if bond.first == v2000_ent.FindAtom("00001_BCL", 1, "11"):
+        self.assertEqual(bond.bond_order, 1)
+        break
+    else:
+      raise Exception("Magnesium atom partner (N 11) not found")
+
 
 if __name__== '__main__':
   from ost import testutils
