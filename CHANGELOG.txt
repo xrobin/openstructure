@@ -1,3 +1,13 @@
+Changes in Release 2.11.1
+--------------------------------------------------------------------------------
+ * Bugfix release to resolve a critical issue in the scoring action.
+   If the reference structure was provided in mmCIF format, model chains were
+   mapped to the reference using residue number alignments, even when the
+   residue-number-alignments flag was diabled. This could cause mapping failures
+   when model chains were not numbered consistently with the reference.
+   This bug was introduced in 2.10.0.
+ * Minor bugfixes in SDF io
+
 Changes in Release 2.11.0
 --------------------------------------------------------------------------------
 
