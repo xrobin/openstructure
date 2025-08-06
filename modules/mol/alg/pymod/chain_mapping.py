@@ -2258,7 +2258,7 @@ class ChainMapper:
         scored_alns = list()
         for ref_idx, ref_seq in enumerate(ref_seqs):
             if ref_types[ref_idx] == s_type:
-                if self.seqres_set:
+                if self.seqres_set and self.resnum_alignments:
                     aln = self.SEQRESAlign(ref_seq, s, s_ent)
                 elif self.resnum_alignments:
                     aln = self.ResNumAlign(ref_seq, s, self.target, s_ent)
