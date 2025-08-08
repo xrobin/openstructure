@@ -44,7 +44,7 @@ public:
   void Import(mol::EntityHandle& ent);
 
 private:
-  typedef std::tuple<int, String, String, String, String, String> atom_data;
+  typedef std::tuple<int, String, String, String, String, String, bool> atom_data;
   typedef std::tuple<String, String, String> bond_data;
   typedef std::tuple<String, String> charge_data;
   typedef std::tuple<std::vector<String>, std::map<String, String>> v3000_line_tokens;

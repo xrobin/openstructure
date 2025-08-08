@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 # ARGUMENTS
 ###########
-ARG OPENSTRUCTURE_VERSION="2.11.0"
+ARG OPENSTRUCTURE_VERSION="2.11.1"
 ARG SRC_FOLDER="/usr/local/src"
 ARG CPUS_FOR_MAKE=2
 
@@ -65,8 +65,7 @@ RUN cd ${SRC_FOLDER} && \
 #############
 WORKDIR /home
 ENV OST_ROOT="/usr/local"
-ENV PYTHONPATH="/usr/local/lib64/python3.10/site-packages"
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib64:/usr/local/openmm/lib/"
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/openmm/lib/"
 ENV OPENSTRUCTURE_VERSION=$OPENSTRUCTURE_VERSION
 
 ENTRYPOINT ["ost"]

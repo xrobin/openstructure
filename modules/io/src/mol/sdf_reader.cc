@@ -259,7 +259,7 @@ SDFReader::atom_data SDFReader::ParseAtom(const String& line, int line_num)
   String s_ele=line.substr(31,3);
   String s_charge=line.substr(36,3);
 
-  return std::make_tuple(anum, s_posx, s_posy, s_posz, s_ele, s_charge);
+  return std::make_tuple(anum, s_posx, s_posy, s_posz, s_ele, s_charge, false);
 }
 
 void SDFReader::AddAtom(const atom_data& atom_tuple, int line_num, mol::EntityHandle& ent,
@@ -267,7 +267,8 @@ void SDFReader::AddAtom(const atom_data& atom_tuple, int line_num, mol::EntityHa
 {
   int anum;
   String s_posx, s_posy, s_posz, s_ele, s_charge;
-  tie(anum, s_posx, s_posy, s_posz, s_ele, s_charge) = atom_tuple;
+  bool chg_charge;
+  tie(anum, s_posx, s_posy, s_posz, s_ele, s_charge, chg_charge) = atom_tuple;
 
   geom::Vec3 apos;
   try {
@@ -288,9 +289,15 @@ void SDFReader::AddAtom(const atom_data& atom_tuple, int line_num, mol::EntityHa
   Real charge=0.0;  
   try {
     charge=boost::lexical_cast<Real>(boost::trim_copy(s_charge));
-    if (charge!=0) {
-      charge=4-charge;
-    } //4-sdf_charge=real_charge if not 0
+    if (charge!=0 && !chg_charge) {
+      // From SDF V2000 Atom Block specification:
+      // charge 0, 1, 2, 3, 4, 5, 6, 7
+      // (0 if uncharged; 1, 2, 3 if positive charges where 1
+      // = +3, 2 = +2, 3 = +1; 4 if doublet radical; 5, 6, 7 if
+      // negative charges where 5 = -1, 6 = -2, 7 = -3)
+      // M CHG and V3000 CHG do not need to be transformed.
+      charge = 4 - charge;
+    }
   } catch(boost::bad_lexical_cast&) {
     String msg="Bad atom line %d: Can't convert charge"
                " '%s' to integral constant.";
@@ -355,28 +362,38 @@ void SDFReader::AddBond(const bond_data& bond_tuple, int line_num, mol::EntityHa
 
   try {
     type=boost::lexical_cast<int>(boost::trim_copy(s_type));
-    // From SDF spec:
+    // From SDF V2000 specification:
     // bond type      1 = Single, 2 = Double,       [Q] Values 4 through 8 are
     //                3 = Triple, 4 = Aromatic,     for SSS queries oniy.
     //                5 = Single or Double,
     //                6 = Single or Aromatic,
     //                7 = Double or Aromatic,
     //                8 = Any
-    if (type < 1 || type > 8) {
+    // SDF V3000 specification has two additional values:
+    //                9 = coordination
+    //                10 = hydrogen
+    int max_type = version_ == "V3000" ? 10 : 8;
+
+    if (type < 1 || type > max_type) {
       std::stringstream ss;
       ss << "Bad bond line " << line_num << ": Bond type number "
-         << std::to_string(type) << " not within accepted range (1-8).";
+         << std::to_string(type) << " not within accepted range "
+         << "(1-" << max_type << ").";
       if (profile_.fault_tolerant) {
         LOG_ERROR(ss.str());
       } else {
         throw IOException(ss.str());
       }
-    } else if (type > 3) {
+    } else if (type > 3 && type < 9) {
       std::stringstream ss;
       ss << "Bad bond line " << line_num << ": Bond type number "
          << std::to_string(type) << ": values 4-8 are reserved for queries, "
          << "should not appear in an SDF file.";
-        LOG_WARNING(ss.str());
+      if (profile_.fault_tolerant) {
+        LOG_ERROR(ss.str());
+      } else {
+        throw IOException(ss.str());
+      }
     }
   } catch(boost::bad_lexical_cast&) {
     std::stringstream ss;
@@ -621,7 +638,7 @@ SDFReader::atom_data SDFReader::ParseV3000Atom(const String& line, int line_num)
     throw IOException(str(format(msg) % s_anum % line_num));
   }
 
-  return std::make_tuple(anum, posx, posy, posz, atype, chg);
+  return std::make_tuple(anum, posx, posy, posz, atype, chg, true);
 }
 
 SDFReader::bond_data SDFReader::ParseV3000Bond(const String& line, int line_num)

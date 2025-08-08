@@ -22,7 +22,7 @@ Bioconda](https://bioconda.github.io/recipes/openstructure/README.html) for a si
 You can install it with the following command:
 
 ```
-conda install bioconda::openstructure
+conda install -c conda-forge bioconda::openstructure
 ```
 
 Tested with [miniforge](https://conda-forge.org/miniforge/).

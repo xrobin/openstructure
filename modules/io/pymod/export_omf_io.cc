@@ -51,6 +51,16 @@ namespace{
     return VecToList<String>(omf->GetChainNames());
   }
 
+  boost::python::list wrap_get_chain_types(OMFPtr omf) {
+
+    boost::python::list chain_types;
+    std::vector<String> chain_names = omf->GetChainNames();
+    for(auto const &cname: chain_names){
+      chain_types.append(omf->GetChainData(cname)->chain_type);
+    }
+    return chain_types;
+  }
+
   OMFPtr wrap_to_assembly(OMFPtr omf,
                           const ost::mol::alg::BUInfo& bu_info) {
     return omf->ToAssembly(bu_info.GetAUChains(),
@@ -70,6 +80,18 @@ namespace{
   boost::python::list wrap_get_rnums(OMFPtr omf, const String& cname) {
     const std::vector<int>& rnums = omf->GetRNums(cname);
     return VecToList<int>(rnums);
+  }
+
+  boost::python::list wrap_get_start_pos(OMFPtr omf, const String& cname) {
+    boost::python::list l;
+    int i = 0;
+    ChainDataPtr chain_data = omf->GetChainData(cname);
+    const std::vector<ResidueDefinition>& res_defs = omf->GetResidueDefinitions();
+    for(auto res_def_idx: chain_data->res_def_indices) {
+      l.append(i);
+      i += res_defs[res_def_idx].anames.size();
+    }
+    return l;
   }
 }
 
@@ -96,10 +118,12 @@ void export_omf_io() {
     .def("GetEntityChain", &OMF::GetEntityChain)
     .def("GetName", &OMF::GetName)
     .def("GetChainNames", &wrap_get_chain_names)
+    .def("GetChainTypes", &wrap_get_chain_types)
     .def("GetPositions", &OMF::GetPositions, return_value_policy<reference_existing_object>(),(arg("cname")))
     .def("GetBFactors", &OMF::GetBFactors, return_value_policy<reference_existing_object>(),(arg("cname")))
-    .def("GetAvgBFactors", &OMF::GetAvgBFactors,(arg("cname")))
     .def("GetOccupancies", &OMF::GetOccupancies, return_value_policy<reference_existing_object>(),(arg("cname")))
+    .def("GetResStartPos", &wrap_get_start_pos, (arg("cname")))
+    .def("GetAvgBFactors", &OMF::GetAvgBFactors, (arg("cname")))
     .def("GetSequence", &OMF::GetSequence, (arg("cname")))
     .def("GetRNums", &wrap_get_rnums, (arg("cname")))
     .def("ToAssembly", &wrap_to_assembly, (arg("bu_info")))

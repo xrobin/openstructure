@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(simple_sdf_v3000)
   BOOST_CHECK_CLOSE(ah2.GetMass(), Real(35.453), Real(1e-3));
   BOOST_CHECK_EQUAL(ah.GetBondCount(),  3);
   BOOST_CHECK_EQUAL(ah2.GetBondCount(), 1);
-  BOOST_CHECK_EQUAL(ah.GetCharge(),  1);
+  BOOST_CHECK_EQUAL(ah.GetCharge(),  3);
   BOOST_CHECK_EQUAL(ah2.GetCharge(), 0);
 
   mol::BondHandle bh=ah.GetBondList()[0];

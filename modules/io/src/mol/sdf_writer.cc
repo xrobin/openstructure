@@ -154,6 +154,15 @@ namespace {
                               atom_iter->GetQualifiedName());
           }
           int type = bond.GetBondOrder();
+          // Bond type can only be 1-3 in V2000.
+          // 9-10 are only in V3000 and must be converted to 1 here.
+          // 4-8 are reserved for queries and should not appear in an SDF file.
+          if (type > 3) {
+            std::stringstream ss;
+            ss << "Bond type " << std::to_string(type) << " coerced to 1.";
+            LOG_WARNING(ss.str());
+            type = 1;
+          }
           ostr_ << format("%3i") % counter_
                 << format("%3i") % aidx->second
                 << format("%3i") % type

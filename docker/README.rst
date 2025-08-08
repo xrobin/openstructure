@@ -1,26 +1,28 @@
 OST Docker
 ==========
 
-.. note::
-
-  For many docker installations it is required to run docker commands as root. As
-  this depends on set up, we skip the ``sudo`` in all commands.
+**Note**: 
+for most docker installations it is required to run docker commands as root. As
+this depends on set up, we skip the ``sudo`` in all commands.
 
 Obtain Docker image from the OST registry
 -----------------------------------------
 
-OST has its own container registry inside GitLab. There we try to keep one
-image for the latest stable version of OST. You can import it by
+OST has its own container registry inside GitLab. We always keep an
+image for the latest stable version of OST. You can import it with:
 
 .. code-block:: bash
 
-  docker pull registry.scicore.unibas.ch/schwede/openstructure:<TAG>
+  docker pull registry.scicore.unibas.ch/schwede/openstructure:latest
 
-and just start using it without the overhead to build it yourself. A list of
-available tags can be found on our
-`GitLab registry page <https://git.scicore.unibas.ch/schwede/openstructure/container_registry/>`_.
-A tag named ``latest`` is always available, pointing to the current stable OST release.
+and just start using it without the overhead to build it yourself:
 
+.. code-block:: bash
+
+  docker run --rm -v $(pwd):/home registry.scicore.unibas.ch/schwede/openstructure:latest --version
+
+In the rest of this documentation, the ``<IMAGE NAME>`` we refer to will be
+``registry.scicore.unibas.ch/schwede/openstructure:latest``.
 
 Build Docker image
 ------------------
@@ -60,14 +62,13 @@ As the last line you should see ``OST is working!``.
 Run script and action with OST
 ------------------------------
 
-.. note::
-
-  If script or action requires some external files eg. PDBs, they have to be located in the
-  path accessible via mounted volume and should be accessed via docker (NOT LOCAL)
-  path. Eg. assuming that we have a struc.pdb file in /home/user/pdbs directory and
-  a script.py in /home/user we could mount the /home/user to /home in docker as
-  above by specifying -v /home/user:/home. To run the script we thus need to
-  provide the (relative) path to the script and (relative) path to the file eg:
+**Note**: 
+if script or action requires some external files eg. PDBs, they have to be located in the
+path accessible via mounted volume and should be accessed via docker (NOT LOCAL)
+path. Eg. assuming that we have a struc.pdb file in /home/user/pdbs directory and
+a script.py in /home/user we could mount the /home/user to /home in docker as
+above by specifying -v /home/user:/home. To run the script we thus need to
+provide the (relative) path to the script and (relative) path to the file eg:
 
   .. code-block:: bash
 
@@ -183,9 +184,8 @@ Eg. to run molck type:
 
   docker run --rm -ti --entrypoint molck <IMAGE NAME> --help
 
-.. note::
-
-  Note how the options to the command are specified after the image name.
+**Note**: 
+the options to the command are specified after the image name.
 
 .. _docker_compound_lib:
 
