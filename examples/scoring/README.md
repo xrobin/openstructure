@@ -95,7 +95,7 @@ Bioconda](https://bioconda.github.io/recipes/openstructure/README.html)
 Installing OpenStructure in Conda is as easy as:
 
 ```
-conda install bioconda::openstructure
+conda install -c conda-forge bioconda::openstructure
 ```
 
 Commands can be run as usual. Tested with [miniforge](https://conda-forge.org/miniforge/).
