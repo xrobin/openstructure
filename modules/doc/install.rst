@@ -424,6 +424,12 @@ all located in stage/bin:
 .. code-block:: bash
 
   dng
+
+If your device is using Wayland display server (default for Ubuntu), you will need this environment variable before starting DNG
+
+.. code-block:: bash
+  export QT_QPA_PLATFORM=xcb
+
   
 or, to start the command-line interpreter:
 
