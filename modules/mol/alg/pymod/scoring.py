@@ -2976,7 +2976,7 @@ class Scorer:
     def _do_stereochecks(self):
         """ Perform stereochemistry checks on model and target
         """
-        LogInfo("Performing stereochemistry checks on model and target")
+        LogScript("Performing stereochemistry checks on model and target")
         data = stereochemistry.GetDefaultStereoData()
         l_data = stereochemistry.GetDefaultStereoLinkData()
 
