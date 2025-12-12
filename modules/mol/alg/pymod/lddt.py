@@ -232,7 +232,7 @@ class lDDTScorer:
         bb_only=False
     ):
 
-        if self.target.atom_count == 0:
+        if target.atom_count == 0:
             raise RuntimeError("LDDT: target has no atoms")
         self.target = target
         self.inclusion_radius = inclusion_radius
