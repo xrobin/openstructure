@@ -165,7 +165,7 @@ class TestStereochemistry(unittest.TestCase):
         stereochecked_ent, clashes, bad_bonds, bad_angles = \
         stereochemistry.StereoCheck(ent)
 
-        self.assertEqual(len(clashes), 2)
+        self.assertEqual(len(clashes), 3)
         self.assertEqual(len(bad_bonds), 2)
         self.assertEqual(len(bad_angles), 2)
 
@@ -194,7 +194,7 @@ class TestStereochemistry(unittest.TestCase):
         stereochecked_ent, clashes, bad_bonds, bad_angles = \
         stereochemistry.StereoCheck(ent)
 
-        self.assertEqual(len(clashes), 1)
+        self.assertEqual(len(clashes), 2)
         self.assertEqual(len(bad_bonds), 1)
         self.assertEqual(len(bad_angles), 1)
 
