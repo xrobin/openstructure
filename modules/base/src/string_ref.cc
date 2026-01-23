@@ -34,6 +34,11 @@ std::pair<bool, int> StringRef::to_int() const
       sig=-1;
       continue;
     }
+    if (*c=='+' && empty) {
+      // just swallow leading '+'' without changing sig
+      empty=false;
+      continue;
+    }
     if (*c>='0' && *c<='9') {
       empty=false;
       n=n*10+int(*c-'0');
