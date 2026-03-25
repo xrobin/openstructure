@@ -302,13 +302,10 @@ class TestQSscore(unittest.TestCase):
     ent_2 = _LoadFile('4br6.1.pdb') # A4, symmetry: D2
     qs_scorer = QSscorer(ent_1, ent_2)
 
-    # The alignments from parasail slightly differ. The sequence identities
-    # are in the range 40% but slightly lower for parasail alignments.
-    # however, the parasail alignments appear less gappy and "nicer".
-    # They nevertheless lead to lower QS-score.
+    # The alignments from parasail slightly differ.
     if seq.alg.ParasailAvailable():
         self.assertAlmostEqual(qs_scorer.global_score, 0.14757304498883386, 2)
-        self.assertAlmostEqual(qs_scorer.best_score, 0.7878766697963304, 2)
+        self.assertAlmostEqual(qs_scorer.best_score, 0.8731478242397115, 2)
     else:
         self.assertAlmostEqual(qs_scorer.global_score, 0.14797023263299844, 2)
         self.assertAlmostEqual(qs_scorer.best_score, 0.8666616636985371, 2)

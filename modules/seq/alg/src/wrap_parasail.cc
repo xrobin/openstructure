@@ -41,8 +41,13 @@ ost::seq::AlignmentList Align(const ost::seq::ConstSequenceHandle& s1,
     gap_open_penalty = std::abs(gap_open_penalty);
     gap_extension_penalty = std::abs(gap_extension_penalty);
 
-    const parasail_matrix_t* matrix =
-    parasail_matrix_lookup(subst_matrix->GetName().c_str());
+    String m_name = subst_matrix->GetName();
+    // nuc44 in parasail does not include U which is critical for RNA
+    // dnafull from parasail is the exactly the same but includes U
+    if(m_name == "nuc44") {
+      m_name = "dnafull";
+    }
+    const parasail_matrix_t* matrix = parasail_matrix_lookup(m_name.c_str());
 
     parasail_result_t *r = NULL;
     parasail_traceback_t *traceback_r = NULL;
@@ -55,7 +60,8 @@ ost::seq::AlignmentList Align(const ost::seq::ConstSequenceHandle& s1,
     const char* s2_c_str = s2_str.c_str();
     int s2_len = s2_str.size();
     
-    r = aln_fn(s1_c_str, s1_len, s2_c_str, s2_len, 11, 1, matrix);
+    r = aln_fn(s1_c_str, s1_len, s2_c_str, s2_len, gap_open_penalty,
+               gap_extension_penalty, matrix);
     traceback_r = parasail_result_get_traceback(r, s1_c_str, s1_len,
                                                 s2_c_str, s2_len, matrix,
                                                 '|', ':', '.');
