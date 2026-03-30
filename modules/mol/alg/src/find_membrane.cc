@@ -610,6 +610,10 @@ void SampleZ(const std::vector<geom::Vec3>& atom_pos,
     }
   }
   exposed_atoms = exposed_atoms_nonzero_energy;
+  
+  if(exposed_atoms.size() < 4) {
+    return;
+  }
 
   std::vector<Real> tilt_angles;
   std::vector<Real> rotation_angles;
@@ -691,6 +695,12 @@ void SampleZ(const std::vector<geom::Vec3>& atom_pos,
 
 LMInput GetFinalSolution(const std::list<LMInput>& top_solutions, Real lambda) {
 
+  if (top_solutions.empty()) {
+    LMInput empty_sol;
+    empty_sol.mem_param.energy = std::numeric_limits<Real>::max();
+    return empty_sol;
+  }
+
   Real best_energy = std::numeric_limits<Real>::max();
   std::list<LMInput>::const_iterator best_sol_it = top_solutions.begin();
   Eigen::Matrix<Real, 4, 1> lm_parameters;
@@ -699,6 +709,10 @@ LMInput GetFinalSolution(const std::list<LMInput>& top_solutions, Real lambda) {
 
   for(std::list<LMInput>::const_iterator sol_it = top_solutions.begin();
       sol_it != top_solutions.end(); ++sol_it) {
+
+    if (sol_it->exposed_atom_positions.size() < 4) {
+      continue;
+    }
 
     Real offset = std::max(Real(20000.), std::abs(sol_it->mem_param.energy * 2));
 
@@ -715,6 +729,11 @@ LMInput GetFinalSolution(const std::list<LMInput>& top_solutions, Real lambda) {
 
     LevenbergMarquardt<EnergyF,EnergyDF> lm(en_f);
     lm_result = lm.minimize(&lm_parameters);
+
+    // skip degenerate solutions
+    if (lm_parameters(2,0) <= 0.0) {  // width must be positive
+      continue;
+    }
  
     Real minimized_energy = en_f(lm_parameters)(0, 0) - en_f.offset;
 
@@ -727,12 +746,19 @@ LMInput GetFinalSolution(const std::list<LMInput>& top_solutions, Real lambda) {
 
   LMInput sol = *best_sol_it;
 
-  // sol has still the initial parameters before optimization
-  sol.mem_param.energy = best_energy;
-  sol.mem_param.tilt = best_lm_parameters(0,0);
-  sol.mem_param.angle = best_lm_parameters(1,0);
-  sol.mem_param.width = best_lm_parameters(2,0);
-  sol.mem_param.pos = best_lm_parameters(3,0);
+  if (best_energy == std::numeric_limits<Real>::max()) {
+    // No solution survived minimization - use raw initial parameters
+    // Energy will be very high, clearly marking this as non-membrane
+    sol.mem_param.energy = best_energy;  // keeps max Real, clearly non-TM
+    // best_sol_it->mem_param already has tilt/angle/width/pos from ScanAxis
+    // so sol already has the right values, no need to overwrite from best_lm_parameters
+  } else {
+    sol.mem_param.energy = best_energy;
+    sol.mem_param.tilt = best_lm_parameters(0,0);
+    sol.mem_param.angle = best_lm_parameters(1,0);
+    sol.mem_param.width = best_lm_parameters(2,0);
+    sol.mem_param.pos = best_lm_parameters(3,0);
+  }
 
   // assign the membrane accessible surface
   // misuses the optimizer energy function and feeds in the 
