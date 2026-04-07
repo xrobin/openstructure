@@ -5469,6 +5469,49 @@ void OMF::Trace(const String& cname, const String& aname,
   }
 }
 
+void OMF::Traces(const String& cname, const std::vector<String>& anames,
+                 std::vector<int>& rnums, std::vector<geom::Vec3List>& pos) const {
+
+  rnums.clear();
+  size_t n_atoms = anames.size();
+  pos.resize(n_atoms);
+  for(size_t i = 0; i < n_atoms; ++i) {
+    pos[i].clear();
+  }
+
+  auto it = chain_data_.find(cname);
+  if(it == chain_data_.end()) {
+    std::stringstream ss;
+    ss << "Cannot get Traces from non-existent chain '"<<cname<<"'.";
+    throw ost::Error(ss.str());
+  }
+  ChainDataPtr chain_data = it->second;
+
+  int res_idx = 0;
+  int pos_idx = 0;
+  std::vector<int> pos_indices(n_atoms, 0);
+  for(auto res_def_idx: chain_data->res_def_indices) {
+    const ResidueDefinition& res_def = residue_definitions_[res_def_idx];
+    bool all_there = true;
+    for(size_t i = 0; i < n_atoms; ++i) {
+      int a_idx = res_def.GetIdx(anames[i]);
+      if(a_idx == -1) {
+        all_there = false;
+        break;
+      }
+      pos_indices[i] = a_idx;
+    }
+    if(all_there) {
+      rnums.push_back(chain_data->rnums[res_idx]);
+      for(size_t i = 0; i < n_atoms; ++i) {
+        pos[i].push_back(chain_data->positions[pos_idx + pos_indices[i]]);
+      }
+    }
+    ++res_idx;
+    pos_idx += res_def.anames.size();
+  }
+}
+
 void OMF::ToStream(std::ostream& stream) const {
 
   uint16_t magic_number = 42;

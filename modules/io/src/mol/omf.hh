@@ -219,6 +219,9 @@ public:
   void Trace(const String& cname, const String& aname,
              std::vector<int>& rnums, geom::Vec3List& pos) const;
 
+  void Traces(const String& cname, const std::vector<String>& anames,
+              std::vector<int>& rnums, std::vector<geom::Vec3List>& pos) const;
+
   int GetVersion() const { return version_; }
 
   static int GetCurrentOMFVersion() { return OMF_VERSION; }
