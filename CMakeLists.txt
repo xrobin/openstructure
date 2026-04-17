@@ -209,10 +209,9 @@ if(BOOST_VERSION)
   message(STATUS "forcing boost to version ${BOOST_VERSION}")
   set(_BOOST_MIN_VERSION ${BOOST_VERSION})
 endif()
-find_package(Boost ${_BOOST_MIN_VERSION} 
+find_package(Boost ${_BOOST_MIN_VERSION}
              COMPONENTS unit_test_framework
                         filesystem
-                        system
                         iostreams
                         program_options
                         regex
@@ -272,8 +271,8 @@ endif(ENABLE_PARASAIL)
 if (ENABLE_STATIC)
   set(Boost_LIBRARIES)
   set(Boost_USE_STATIC_LIBS ON)
-  find_package(Boost ${_BOOST_MIN_VERSION} 
-               COMPONENTS filesystem system iostreams regex thread REQUIRED)
+  find_package(Boost ${_BOOST_MIN_VERSION}
+               COMPONENTS filesystem iostreams regex thread REQUIRED)
   find_package(ZLIB REQUIRED)
    
   if (UNIX AND NOT APPLE)
