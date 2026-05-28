@@ -271,34 +271,43 @@ bool MMCifReader::OnBeginLoop(const StarLoopDesc& header)
     cat_available = true;
   } else if (header.GetCategory() == "struct_conf") {
     category_ = STRUCT_CONF;
-    // mandatory items
-    this->TryStoreIdx(SC_BEG_LABEL_ASYM_ID, "beg_label_asym_id", header);
-    this->TryStoreIdx(SC_BEG_LABEL_COMP_ID, "beg_label_comp_id", header);
-    this->TryStoreIdx(SC_BEG_LABEL_SEQ_ID,  "beg_label_seq_id", header);
-    this->TryStoreIdx(SC_CONF_TYPE_ID,      "conf_type_id", header);
-    this->TryStoreIdx(SC_END_LABEL_ASYM_ID, "end_label_asym_id", header);
-    this->TryStoreIdx(SC_END_LABEL_COMP_ID, "end_label_comp_id", header);
-    this->TryStoreIdx(SC_END_LABEL_SEQ_ID,  "end_label_seq_id", header);
-    this->TryStoreIdx(SC_ID,                "id", header);
-    // optional items
-    indices_[SC_BEG_AUTH_ASYM_ID] = header.GetIndex("beg_auth_asym_id");
-    indices_[SC_END_AUTH_ASYM_ID] = header.GetIndex("end_auth_asym_id");
-    cat_available = true;
+    try {
+      // mandatory items
+      this->TryStoreIdx(SC_BEG_LABEL_SEQ_ID,  "beg_label_seq_id", header);
+      this->TryStoreIdx(SC_END_LABEL_SEQ_ID,  "end_label_seq_id", header);
+      this->TryStoreIdx(SC_BEG_LABEL_ASYM_ID, "beg_label_asym_id", header);
+      this->TryStoreIdx(SC_CONF_TYPE_ID,      "conf_type_id", header);
+      // optional items
+      indices_[SC_BEG_AUTH_ASYM_ID] = header.GetIndex("beg_auth_asym_id");
+      indices_[SC_END_AUTH_ASYM_ID] = header.GetIndex("end_auth_asym_id");
+      cat_available = true;
+    } catch (const IOException& e) {
+      if (profile_.fault_tolerant) {
+        LOG_WARNING(e.what());
+        cat_available = false;
+      } else {
+        throw;
+      }
+    }
   } else if (header.GetCategory() == "struct_sheet_range") {
     category_ = STRUCT_SHEET_RANGE;
-    // mandatory items
-    this->TryStoreIdx(SSR_BEG_LABEL_ASYM_ID,     "beg_label_asym_id", header);
-    this->TryStoreIdx(SSR_BEG_LABEL_COMP_ID,     "beg_label_comp_id", header);
-    this->TryStoreIdx(SSR_BEG_LABEL_SEQ_ID,      "beg_label_seq_id", header);
-    this->TryStoreIdx(SSR_END_LABEL_ASYM_ID,     "end_label_asym_id", header);
-    this->TryStoreIdx(SSR_END_LABEL_COMP_ID,     "end_label_comp_id", header);
-    this->TryStoreIdx(SSR_END_LABEL_SEQ_ID,      "end_label_seq_id", header);
-    this->TryStoreIdx(SSR_SHEET_ID,              "sheet_id", header);
-    this->TryStoreIdx(SSR_ID,                    "id", header);
-    // optional items
-    indices_[SSR_BEG_AUTH_ASYM_ID] = header.GetIndex("beg_auth_asym_id");
-    indices_[SSR_END_AUTH_ASYM_ID] = header.GetIndex("end_auth_asym_id");
-    cat_available = true;
+    try {
+      // mandatory items
+      this->TryStoreIdx(SSR_BEG_LABEL_SEQ_ID,      "beg_label_seq_id", header);
+      this->TryStoreIdx(SSR_END_LABEL_SEQ_ID,      "end_label_seq_id", header);
+      this->TryStoreIdx(SSR_BEG_LABEL_ASYM_ID,     "beg_label_asym_id", header);
+      // optional items
+      indices_[SSR_BEG_AUTH_ASYM_ID] = header.GetIndex("beg_auth_asym_id");
+      indices_[SSR_END_AUTH_ASYM_ID] = header.GetIndex("end_auth_asym_id");
+      cat_available = true;
+    } catch (const IOException& e) {
+      if (profile_.fault_tolerant) {
+        LOG_WARNING(e.what());
+        cat_available = false;
+      } else {
+        throw;
+      }
+    }
   } else if (header.GetCategory() == "pdbx_database_PDB_obs_spr") {
     category_ = PDBX_DATABASE_PDB_OBS_SPR;
     // mandatory items
@@ -1423,7 +1432,6 @@ void MMCifReader::ParseStructSheetRange(const std::vector<StringRef>& columns)
   // the future
   if (restrict_chains_.size() == 0 ||
       restrict_chains_.find(chain_name.str()) != String::npos) {
-
     std::pair<bool,int> s_beg = this->TryGetInt(columns[indices_[SSR_BEG_LABEL_SEQ_ID]], // s_res_num
                                                 "struct_sheet_range.beg_label_seq_id",
                                                 profile_.fault_tolerant);
