@@ -238,7 +238,7 @@ class TestScorer(unittest.TestCase):
     from ost.mol.alg.scoring_base import MMCIFPrep
     mdl = MMCIFPrep("testfiles/cameo_tmscore_exit_model.cif")
     trg = MMCIFPrep("testfiles/cameo_tmscore_exit_target.cif.gz")
-    scorer = Scorer(mdl, trg, custom_rigid_mapping={})
+    scorer = Scorer(mdl, trg)
     with self.assertRaises(Exception) as ctx:
         _ = scorer.tm_score
 
