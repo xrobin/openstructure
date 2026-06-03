@@ -234,6 +234,14 @@ class TestScorer(unittest.TestCase):
     scorer = Scorer(mdl, trg)
     self.assertAlmostEqual(scorer.tm_score, 0.711, 3)
 
+  def test_scorer_tmscore_sysexit(self):
+    from ost.mol.alg.scoring_base import MMCIFPrep
+    mdl = MMCIFPrep("testfiles/cameo_tmscore_exit_model.cif")
+    trg = MMCIFPrep("testfiles/cameo_tmscore_exit_target.cif.gz")
+    scorer = Scorer(mdl, trg, custom_rigid_mapping={})
+    with self.assertRaises(Exception) as ctx:
+        _ = scorer.tm_score
+
   def test_scorer_seqres(self):
     mdl = _LoadFile("1eud_mdl_partial-dimer.pdb")
     trg = _LoadFile("1eud_ref.pdb")
