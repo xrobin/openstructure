@@ -235,6 +235,13 @@ class TestScorer(unittest.TestCase):
     self.assertAlmostEqual(scorer.tm_score, 0.711, 3)
 
   def test_scorer_tmscore_sysexit(self):
+    """USalign which was copied in modules/bindings/src/USalign calls exit(1)
+    when encountering an error. The copy in OST was manually patched to raise
+    an Exception instead so that we can handle the error in OpenStructure.
+    This test checks that the Exception is raised, rather than the process
+    exiting. This test ensures we don't regress on this issue in case we update
+    the USalign copy.
+    """
     from ost.mol.alg.scoring_base import MMCIFPrep
     mdl = MMCIFPrep("testfiles/cameo_tmscore_exit_model.cif")
     trg = MMCIFPrep("testfiles/cameo_tmscore_exit_target.cif.gz")
