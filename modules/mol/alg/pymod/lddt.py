@@ -1497,8 +1497,8 @@ class lDDTScorer:
                 if i not in symmetric_atoms:
                     indices.append(i)
                     distances.append(d)
-            sym_ref_indices[idx] = indices
-            sym_ref_distances[idx] = np.asarray(distances)
+            sym_ref_indices[idx] = np.asarray(indices, dtype=np.int32)
+            sym_ref_distances[idx] = np.asarray(distances, dtype=np.float32)
 
         return (sym_ref_indices, sym_ref_distances)
 
@@ -1681,3 +1681,64 @@ class lDDTScorer:
                 # switch back, initial positions were better
                 for pair in sym:
                     pos[[pair[0], pair[1]]] = pos[[pair[1], pair[0]]]
+
+
+def DisableChainPairContacts(scorer, excluded_interfaces):
+    """Copy interchain reference distances of *scorer* with contacts
+    for a selection of interfaces switched off
+
+    :param scorer: Scorer from which to derive the interchain reference
+                   distances
+    :type scorer: :class:`lDDTScorer`
+    :param excluded_interfaces: Interfaces for which contacts should be
+                                disabled. Each element is a pair of chain
+                                names.
+    :type excluded_interfaces: :class:`list` of :class:`tuple` with two
+                               :class:`str`
+    :returns: Tuple with 4 elements that are copies of
+              (scorer.ref_indices_ic, scorer.ref_distances_ic,
+              scorer.sym_ref_indices_ic, scorer.sym_ref_distances_ic) with
+              any contact belonging to one of *excluded_interfaces* removed
+    """
+    def _chain_range(scorer, ch_idx):
+        s = scorer.chain_start_indices[ch_idx]
+        if ch_idx + 1 < len(scorer.chain_start_indices):
+            e = scorer.chain_start_indices[ch_idx + 1]
+        else:
+            e = scorer.n_atoms
+        return s, e
+
+    # Copy to make sure that we don't change anything on underlying
+    # references
+    ref_indices = [a.copy() for a in scorer.ref_indices_ic]
+    ref_distances = [a.copy() for a in scorer.ref_distances_ic]
+    sym_ref_indices = [a.copy() for a in scorer.sym_ref_indices_ic]
+    sym_ref_distances = [a.copy() for a in scorer.sym_ref_distances_ic]
+
+    for chain_a, chain_b in excluded_interfaces:
+        ch_idx_a = scorer.chain_names.index(chain_a)
+        ch_idx_b = scorer.chain_names.index(chain_b)
+        a_s, a_e = _chain_range(scorer, ch_idx_a)
+        b_s, b_e = _chain_range(scorer, ch_idx_b)
+
+        # atoms are stored consecutively per chain => index stretches
+        # [a_s, a_e) and [b_s, b_e) fully cover chain_a/chain_b. Remove any
+        # contact from one stretch pointing into the other (contacts are
+        # stored symmetrically, i.e. i in indices[j] implies j in
+        # indices[i], so both directions must be cleaned up)
+        for indices, distances in [(ref_indices, ref_distances),
+                                   (sym_ref_indices, sym_ref_distances)]:
+            for at_idx in range(a_s, a_e):
+                if indices[at_idx].shape[0] > 0:
+                    mask = np.logical_or(indices[at_idx] < b_s,
+                                         indices[at_idx] >= b_e)
+                    indices[at_idx] = indices[at_idx][mask]
+                    distances[at_idx] = distances[at_idx][mask]
+            for at_idx in range(b_s, b_e):
+                if indices[at_idx].shape[0] > 0:
+                    mask = np.logical_or(indices[at_idx] < a_s,
+                                         indices[at_idx] >= a_e)
+                    indices[at_idx] = indices[at_idx][mask]
+                    distances[at_idx] = distances[at_idx][mask]
+
+    return (ref_indices, ref_distances, sym_ref_indices, sym_ref_distances)
