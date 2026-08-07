@@ -5441,6 +5441,46 @@ OMFPtr OMF::ToAssembly(const std::vector<std::vector<String> >& au_chains,
   return omf_ptr;
 }
 
+OMFPtr OMF::SelectChains(const std::vector<String>& chain_names) const {
+
+  OMFPtr omf_ptr(new OMF);
+
+  // copy common attributes
+  omf_ptr->name_ = name_;
+  omf_ptr->max_error_ = max_error_;
+  omf_ptr->residue_definitions_ = residue_definitions_;
+  omf_ptr->options_ = options_;
+  omf_ptr->version_ = version_;
+
+  std::set<String> selected_chains(chain_names.begin(), chain_names.end());
+
+  for(auto it = chain_names.begin(); it != chain_names.end(); ++it) {
+    auto data_it = chain_data_.find(*it);
+    if(data_it == chain_data_.end()) {
+      std::stringstream ss;
+      ss << "Cannot select non-existent chain '"<<*it<<"'.";
+      throw ost::Error(ss.str());
+    }
+    omf_ptr->chain_data_[*it] = ChainDataPtr(new ChainData(*data_it->second));
+  }
+
+  // deal with interchain bonds - only keep the ones where both involved
+  // chains are part of the selection
+  int n_bonds = bond_orders_.size();
+  for(int i = 0; i < n_bonds; ++i) {
+    if(selected_chains.find(bond_chain_names_[2*i]) != selected_chains.end() &&
+       selected_chains.find(bond_chain_names_[2*i+1]) != selected_chains.end()) {
+      omf_ptr->bond_chain_names_.push_back(bond_chain_names_[2*i]);
+      omf_ptr->bond_chain_names_.push_back(bond_chain_names_[2*i+1]);
+      omf_ptr->bond_atoms_.push_back(bond_atoms_[2*i]);
+      omf_ptr->bond_atoms_.push_back(bond_atoms_[2*i+1]);
+      omf_ptr->bond_orders_.push_back(bond_orders_[i]);
+    }
+  }
+
+  return omf_ptr;
+}
+
 void OMF::Trace(const String& cname, const String& aname,
                 std::vector<int>& rnums, geom::Vec3List& pos) const {
 

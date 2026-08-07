@@ -77,6 +77,10 @@ namespace{
                            bu_info.GetBUChains());
   }
 
+  OMFPtr wrap_select_chains(OMFPtr omf, const boost::python::list& chain_names) {
+    return omf->SelectChains(ListToVec<String>(chain_names));
+  }
+
   tuple wrap_trace(OMFPtr omf,
                    const String& cname,
                    const String& aname) {
@@ -147,6 +151,7 @@ void export_omf_io() {
     .def("GetSequence", &OMF::GetSequence, (arg("cname")))
     .def("GetRNums", &wrap_get_rnums, (arg("cname")))
     .def("ToAssembly", &wrap_to_assembly, (arg("bu_info")))
+    .def("SelectChains", &wrap_select_chains, (arg("chain_names")))
     .def("Trace", &wrap_trace, (arg("cname"), arg("aname")))
     .def("Traces", &wrap_traces, (arg("cname"), arg("anames")))
   ;
