@@ -18,6 +18,9 @@ bool ChemdictParser::OnBeginData(const StringRef& data_name)
   atom_map_.clear();
   valid_atom_ = false;
   atom_ = conop::AtomSpec();
+  bond_ = conop::BondSpec();
+  bond_atom_one_.clear();
+  bond_atom_two_.clear();
   return true;
 }
 
@@ -197,6 +200,15 @@ void ChemdictParser::OnDataItem(const StarDataItem& item)
     } else if (item.GetName()==StringRef("pdbx_aromatic_flag", 18)) {
       atom_.is_aromatic=item.GetValue()[0]=='Y';
     }
+  } else if (item.GetCategory()==StringRef("chem_comp_bond", 14)) {
+    if (item.GetName()==StringRef("atom_id_1", 9)) {
+      bond_atom_one_=item.GetValue().str();
+    } else if (item.GetName()==StringRef("atom_id_2", 9)) {
+      bond_atom_two_=item.GetValue().str();
+    } else if (item.GetName()==StringRef("value_order", 11)) {
+      char b=item.GetValue()[0];
+      bond_.order=b=='D' ? 2 : (b=='S' ? 1 : 3);
+    }
   }
 }
 
@@ -217,11 +229,22 @@ void ChemdictParser::OnEndData()
         if (valid_atom_)
         {
           compound_->AddAtom(atom_);
+          atom_map_[atom_.name]=atom_.ordinal;
         }
         else
         {
           LOG_WARNING("Adding compound with no atoms: " << compound_->GetID());
         }
+      }
+      if (compound_->GetBondSpecs().empty() &&
+          !bond_atom_one_.empty() && !bond_atom_two_.empty()) {
+        // This happens if we had a single bond
+        bond_.atom_one=atom_map_[bond_atom_one_];
+        bond_.atom_two=atom_map_[bond_atom_two_];
+        if (bond_.atom_one>bond_.atom_two) {
+          std::swap(bond_.atom_one, bond_.atom_two);
+        }
+        compound_->AddBond(bond_);
       }
       lib_->AddCompound(compound_);
       ++imported_count_;

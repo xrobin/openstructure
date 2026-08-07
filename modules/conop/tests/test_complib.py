@@ -153,6 +153,15 @@ class TestCompLib(unittest.TestCase):
         self.assertEqual(comp_ox.atom_specs[0].element, "NA")
         self.assertEqual(comp_ox.atom_specs[0].charge, 1)
 
+    def test_non_loop_bonds(self):
+        complib = self.complib
+        comp_oxy = complib.FindCompound("OXY")
+        self.assertEqual(len(comp_oxy.atom_specs), 2)
+        self.assertEqual(len(comp_oxy.bond_specs), 1)
+        self.assertEqual(comp_oxy.bond_specs[0].atom_one, 0)
+        self.assertEqual(comp_oxy.bond_specs[0].atom_two, 1)
+        self.assertEqual(comp_oxy.bond_specs[0].order, 2)
+
 if __name__ == "__main__":
     from ost import testutils
     testutils.RunTests()
