@@ -2693,7 +2693,7 @@ Statistics for column %(col)s
       
       if enr==None:
         return None
-      return np.trapz(enr[1], enr[0])
+      return getattr(np, 'trapezoid', np.trapz)(enr[1], enr[0])
     except ImportError:
       LogError("Function needs numpy, but I could not import it.")
       raise
@@ -2804,7 +2804,7 @@ Statistics for column %(col)s
 
       if not roc:
         return None
-      return np.trapz(roc[1], roc[0])
+      return getattr(np, 'trapezoid', np.trapz)(roc[1], roc[0])
     except ImportError:
       LogError("Function needs numpy, but I could not import it.")
       raise
