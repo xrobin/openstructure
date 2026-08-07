@@ -174,20 +174,22 @@ void ChemdictParser::OnDataItem(const StarDataItem& item)
         compound_->SetModificationDate(Date::FromString(pdbx_modified_date));
       }
     }
-  } else if (item.GetName()==StringRef("atom_id", 7)) {
-    atom_.name=item.GetValue().str();
-    valid_atom_ = true;
-  } else if (item.GetName()==StringRef("alt_atom_id", 11)) {
-    if (compound_->GetID()=="ILE" && item.GetValue()==StringRef("CD1", 3)) {
-      atom_.alt_name="CD";
-    } else {
-      atom_.alt_name=item.GetValue().str();       
+  } else if (item.GetCategory()==StringRef("chem_comp_atom", 14)) {
+    if (item.GetName()==StringRef("atom_id", 7)) {
+      atom_.name=item.GetValue().str();
+      valid_atom_ = true;
+    } else if (item.GetName()==StringRef("alt_atom_id", 11)) {
+      if (compound_->GetID()=="ILE" && item.GetValue()==StringRef("CD1", 3)) {
+        atom_.alt_name="CD";
+      } else {
+        atom_.alt_name=item.GetValue().str();       
+      }
+  
+    } else if (item.GetName()==StringRef("type_symbol", 11)) {
+      atom_.element=item.GetValue().str();
+    } else if (item.GetName()==StringRef("pdbx_ordinal", 12)) {
+      atom_.ordinal=item.GetValue().to_int().second-1;
     }
-
-  } else if (item.GetName()==StringRef("type_symbol", 11)) {
-    atom_.element=item.GetValue().str();
-  } else if (item.GetName()==StringRef("pdbx_ordinal", 12)) {
-    atom_.ordinal=item.GetValue().to_int().second-1;
   }
 }
 

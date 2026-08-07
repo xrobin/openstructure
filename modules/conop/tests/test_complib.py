@@ -144,6 +144,13 @@ class TestCompLib(unittest.TestCase):
         self.assertEqual(len(comp.atom_specs), 37)
         self.assertEqual(len(comp.bond_specs), 38)
 
+    def test_non_loop_atoms(self):
+        complib = self.complib
+        comp_ox = complib.FindCompound("OX")
+        self.assertEqual(len(comp_ox.atom_specs), 1)
+        self.assertEqual(comp_ox.atom_specs[0].name, "O")
+        self.assertEqual(comp_ox.atom_specs[0].alt_name, "O")
+        self.assertEqual(comp_ox.atom_specs[0].element, "O")
 
 if __name__ == "__main__":
     from ost import testutils
