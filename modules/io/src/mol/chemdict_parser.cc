@@ -17,6 +17,7 @@ bool ChemdictParser::OnBeginData(const StringRef& data_name)
   }
   atom_map_.clear();
   valid_atom_ = false;
+  atom_ = conop::AtomSpec();
   return true;
 }
 
