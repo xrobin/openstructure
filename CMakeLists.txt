@@ -209,6 +209,7 @@ if(BOOST_VERSION)
   message(STATUS "forcing boost to version ${BOOST_VERSION}")
   set(_BOOST_MIN_VERSION ${BOOST_VERSION})
 endif()
+set(Boost_PYTHON_VERSION "${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}")
 find_package(Boost ${_BOOST_MIN_VERSION}
              COMPONENTS unit_test_framework
                         filesystem
