@@ -1495,14 +1495,18 @@ namespace{
     uint32_t size;
     stream.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
     vec.resize(size);
-    stream.read(reinterpret_cast<char*>(&vec[0]), size*sizeof(T));
+    if(size > 0) {
+      stream.read(reinterpret_cast<char*>(vec.data()), size*sizeof(T));
+    }
   }
 
   template<typename T>
   void DumpIntVec(std::ostream& stream, const std::vector<T>& vec) {
     uint32_t size = vec.size();
     stream.write(reinterpret_cast<char*>(&size), sizeof(uint32_t));
-    stream.write(reinterpret_cast<const char*>(&vec[0]), size*sizeof(T));
+    if(size > 0) {
+      stream.write(reinterpret_cast<const char*>(vec.data()), size*sizeof(T));
+    }
   }
 
   void Load(std::istream& stream, std::vector<int>& vec) {
@@ -1620,8 +1624,10 @@ namespace{
       if(vec[i]) bit_vector[i/8] += (1 << (i%8));
     }
     stream.write(reinterpret_cast<char*>(&size), sizeof(uint32_t));
-    stream.write(reinterpret_cast<char*>(&bit_vector[0]),
-                                         n_bytes * sizeof(uint8_t));
+    if(n_bytes > 0) {
+      stream.write(reinterpret_cast<char*>(bit_vector.data()),
+                                           n_bytes * sizeof(uint8_t));
+    }
   }
 
   void Load(std::istream& stream,
@@ -1630,8 +1636,10 @@ namespace{
     stream.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
     uint32_t n_bytes = std::ceil(static_cast<Real>(size)/8);
     std::vector<uint8_t> bit_vector(n_bytes);
-    stream.read(reinterpret_cast<char*>(&bit_vector[0]),
-                                        n_bytes * sizeof(uint8_t));
+    if(n_bytes > 0) {
+      stream.read(reinterpret_cast<char*>(bit_vector.data()),
+                                          n_bytes * sizeof(uint8_t));
+    }
     vec.resize(size);
     for(uint i = 0; i < size; ++i) {
       vec[i] = static_cast<bool>(bit_vector[i/8] & (1 << (i%8)));
