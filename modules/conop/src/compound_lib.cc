@@ -312,9 +312,22 @@ void CompoundLib::AddCompound(const CompoundPtr& compound)
   sqlite3_int64 compound_id=sqlite3_last_insert_rowid(db_->ptr);
   // insert atoms
   const AtomSpecList& al=compound->GetAtomSpecs();
-  std::vector<sqlite3_int64> atom_ids(al.size(), 0);
+  // Ordinals are 0-based pdbx_ordinal values and may contain gaps, so the
+  // vector must be indexed by ordinal (sized to max+1), not by atom count.
+  int max_ordinal=-1;
+  for (AtomSpecList::const_iterator i=al.begin(), e=al.end(); i!=e; ++i) {
+    if (i->ordinal>max_ordinal) {
+      max_ordinal=i->ordinal;
+    }
+  }
+  std::vector<sqlite3_int64> atom_ids(max_ordinal<0 ? 0 : max_ordinal+1, 0);
   for (AtomSpecList::const_iterator i=al.begin(), e=al.end(); i!=e; ++i) {
     const AtomSpec& a=*i;
+    if (a.ordinal<0) {
+      LOG_ERROR("Compound '" << compound->GetID() << "' has atom '" << a.name
+                << "' with invalid ordinal " << a.ordinal);
+      continue;
+    }
     retval=sqlite3_prepare_v2(db_->ptr, INSERT_ATOM_STATEMENT, 
                               strlen(INSERT_ATOM_STATEMENT), &stmt, NULL);
     if (SQLITE_OK==retval) {
@@ -340,6 +353,16 @@ void CompoundLib::AddCompound(const CompoundPtr& compound)
   const BondSpecList& bl=compound->GetBondSpecs();
   for (BondSpecList::const_iterator i=bl.begin(), e=bl.end(); i!=e; ++i) {
     const BondSpec& b=*i;
+    // Bonds store atom ordinals; reject unknown/gap ordinals (no atom row id).
+    if (b.atom_one<0 || b.atom_two<0 ||
+        static_cast<size_t>(b.atom_one)>=atom_ids.size() ||
+        static_cast<size_t>(b.atom_two)>=atom_ids.size() ||
+        atom_ids[b.atom_one]==0 || atom_ids[b.atom_two]==0) {
+      LOG_ERROR("Compound '" << compound->GetID() << "' has bond referencing "
+                << "missing atom ordinals (" << b.atom_one << ", " << b.atom_two
+                << ")");
+      continue;
+    }
     retval=sqlite3_prepare_v2(db_->ptr, INSERT_BOND_STATEMENT, 
                               strlen(INSERT_BOND_STATEMENT), &stmt, NULL);    
     if (SQLITE_OK==retval) {
