@@ -189,6 +189,12 @@ void ChemdictParser::OnDataItem(const StarDataItem& item)
       atom_.element=item.GetValue().str();
     } else if (item.GetName()==StringRef("pdbx_ordinal", 12)) {
       atom_.ordinal=item.GetValue().to_int().second-1;
+    } else if (item.GetName()==StringRef("charge", 6)) {
+      atom_.charge=item.GetValue().to_int().second;
+    } else if (item.GetName()==StringRef("pdbx_leaving_atom_flag", 22)) {
+      atom_.is_leaving=item.GetValue()[0]=='Y';
+    } else if (item.GetName()==StringRef("pdbx_aromatic_flag", 18)) {
+      atom_.is_aromatic=item.GetValue()[0]=='Y';
     }
   }
 }

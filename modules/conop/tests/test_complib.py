@@ -146,11 +146,12 @@ class TestCompLib(unittest.TestCase):
 
     def test_non_loop_atoms(self):
         complib = self.complib
-        comp_ox = complib.FindCompound("OX")
+        comp_ox = complib.FindCompound("NA")
         self.assertEqual(len(comp_ox.atom_specs), 1)
-        self.assertEqual(comp_ox.atom_specs[0].name, "O")
-        self.assertEqual(comp_ox.atom_specs[0].alt_name, "O")
-        self.assertEqual(comp_ox.atom_specs[0].element, "O")
+        self.assertEqual(comp_ox.atom_specs[0].name, "NA")
+        self.assertEqual(comp_ox.atom_specs[0].alt_name, "NA")
+        self.assertEqual(comp_ox.atom_specs[0].element, "NA")
+        self.assertEqual(comp_ox.atom_specs[0].charge, 1)
 
 if __name__ == "__main__":
     from ost import testutils
