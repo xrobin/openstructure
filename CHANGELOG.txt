@@ -4,6 +4,10 @@ Changes in develop (Release 2.12.0)
    ost.mol.alg.stereochemistry.ClashInfo to store only the clashing atom
    (instead of both atoms). The compare‑structures action now outputs fewer clash
    details.
+ * Compatibility fixes for newer systems (CMake policies, GCC/libstdc++
+   assertions, Boost.Python, NumPy).
+ * Fixed reading of chem_comp atom and bond data presented as key-value pairs
+   rather than in a loop in the CCD.
 
 Changes in Release 2.11.1
 --------------------------------------------------------------------------------
