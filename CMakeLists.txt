@@ -22,6 +22,15 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.31.0")
   cmake_policy(SET CMP0177 NEW)
 endif()
 
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.27.0")
+  # See CMP0144 for more information.
+  # find_package(Boost) uses BoostConfig.cmake (CMP0167 NEW). Docs and build
+  # configs pass BOOST_ROOT as the Boost prefix; with CMP0144 NEW, find_package
+  # honors that upper-case <PACKAGENAME>_ROOT variable. Without it, CMake warns
+  # and ignores BOOST_ROOT as a search prefix.
+  cmake_policy(SET CMP0144 NEW)
+endif()
+
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.30.0")
   # See CMP0167 for more information
   # to summarize: Starting from boost 1.70, boost comes with a package
