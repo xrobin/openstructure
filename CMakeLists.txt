@@ -261,7 +261,11 @@ if (ENABLE_GFX)
   find_package(OpenGL REQUIRED)
 endif()
 
-find_package(EIGEN 3.2.0 REQUIRED)
+find_package(Eigen3 5 QUIET NO_MODULE)
+if (NOT Eigen3_FOUND)
+  find_package(Eigen3 3.3.1 REQUIRED NO_MODULE)
+endif()
+message(STATUS "Found Eigen3 ${Eigen3_VERSION} at ${Eigen3_DIR}")
 find_package(SQLITE3 3.7.13 REQUIRED)
 find_package(PNG REQUIRED)
 find_package(FFTW REQUIRED)
@@ -333,9 +337,8 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang")
 endif(CMAKE_C_COMPILER_ID MATCHES "Clang")
 
 # basic environment
-include_directories(${Boost_INCLUDE_DIRS} 
-                    ${FFTW_INCLUDE_DIRS} 
-                    ${EIGEN3_INCLUDE_DIRS}
+include_directories(${Boost_INCLUDE_DIRS}
+                    ${FFTW_INCLUDE_DIRS}
                     ${TIFF_INCLUDE_DIR}
                     ${PNG_INCLUDE_DIRS}
                     ${OPEN_MM_INCLUDE_DIRS}

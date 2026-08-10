@@ -37,7 +37,7 @@ parentheses.
 * `Python3 <http://python.org>`_ (3.9.5)
 * `Boost <http://boost.org>`_ (1.76.0)
 * `zlib <https://zlib.net/>`_ (usually comes with Boost or system)
-* `Eigen3 <http://eigen.tuxfamily.org>`_ (3.4.0)
+* `Eigen3 <https://libeigen.gitlab.io/>`_ (3.4.0)
 * `SQLite3 <https://www3.sqlite.org>`_ (3.35.4)
 * `FFTW3 <http://fftw.org>`_ (3.3.9). By default, OpenStructure is compiled with single
   precision and thus also requires FFTW to be compiled with single precision.
@@ -199,8 +199,9 @@ can influence it.
   * `Python_LIBRARY` defines the location of the Python library (file name
     starting with `libpython`). This must be set if it is not in
     `$Python_ROOT_DIR/lib`.
-  * `EIGEN3_INCLUDE_DIR` defines the include folder of Eigen3 (contains `Eigen`
-    folder with include files).
+  * `Eigen3_DIR` defines the directory containing `Eigen3Config.cmake` for a
+    non-standard Eigen3 installation (e.g. a local build directory or install
+    prefix, such as `<prefix>/share/eigen3/cmake`).
   * `FFTW_LIBRARY` defines the location of the FFTW3 library (file name starting
     with `libfftw3f` (or `libfftw3` if `USE_DOUBLE_PRECISION` is switched on))
   * `FFTW_INCLUDE_DIR` defines the include folder of FFTW3 (contains include
