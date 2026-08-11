@@ -8,6 +8,10 @@ Changes in develop (Release 2.12.0)
    assertions, Boost.Python, NumPy).
  * Fixed reading of chem_comp atom and bond data presented as key-value pairs
    rather than in a loop in the CCD.
+ * Add support for Eigen 5.0.0 while retaining support for Eigen >= 3.3.1.
+   The CMake variable for specifying a non-standard Eigen installation has
+   changed from EIGEN3_INCLUDE_DIR to Eigen3_DIR, which specifies the
+   directory containing Eigen3Config.cmake.
 
 Changes in Release 2.11.1
 --------------------------------------------------------------------------------
