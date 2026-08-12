@@ -241,7 +241,7 @@ This container includes the following apps:
 
 To see the help for each individual app run:
 
-    singularity help --app <APP NAME> <IMAGE NAME>
+    singularity help --app <APP NAME> <IMAGE>
 EOF
 
 %help
@@ -257,4 +257,4 @@ This container includes the following apps:
 
 To see the help for each individual app run:
 
-    singularity help --app <APP NAME> <IMAGE NAME>
+    singularity help --app <APP NAME> <IMAGE>
