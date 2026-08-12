@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:26.04
 
 # ARGUMENTS
 ###########
@@ -16,7 +16,6 @@ RUN apt-get update -y && apt-get install -y cmake \
                                             wget \
                                             tar \
                                             libsqlite3-dev \
-                                            sip-dev \
                                             libtiff-dev \
                                             libfftw3-dev \
                                             libeigen3-dev \

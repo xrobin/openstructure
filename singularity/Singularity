@@ -11,10 +11,36 @@ ln -sf /bin/bash /bin/sh
 
 # INSTALL SYSTEM DEPS
 #####################
-apt-get update -y && apt-get install -y ipython3 jupyter python3-pip
-pip3 install ipywidgets==8.1.1
-pip3 install nglview \
-             six
+apt-get update -y && apt-get install -y python3-pip
+# nglview==4.0.1 ships a Python side that declares a different widget
+# frontend version than the JS labextension it bundles, which breaks
+# widget loading in JupyterLab/Notebook (upstream issue:
+# https://github.com/nglviewer/nglview/issues/1172). Pin to 4.0, the
+# last release where the two sides still agree, until upstream fixes it.
+#
+# nglview==4.0 also pins numpy<2.3, which would otherwise make pip try
+# to downgrade the apt-managed system numpy (dpkg-installed, no RECORD
+# file, and the version OST's own Python bindings are built against).
+# This upper bound looks stale rather than a real incompatibility:
+# nglview has no compiled extension linked against the numpy C-API (it
+# is pure Python + a prebuilt JS widget), it has been verified to work
+# fine against numpy>=2.3, and e.g. Nixpkgs overrides this exact same
+# pin for the same reason (see its nglview package definition). So we
+# install nglview with --no-deps to skip just that conflicting pin,
+# but list its other (current) real dependencies explicitly below so
+# pip still resolves/verifies those normally instead of silently
+# trusting that `jupyter` happens to cover them. If a future nglview
+# release adds a genuinely new dependency, it will only surface at
+# runtime (import error in the Notebook app) rather than at build
+# time -- re-run this install without --no-deps when bumping the
+# nglview pin to check for that.
+pip3 install --break-system-packages \
+    ipython \
+    jupyter \
+    ipywidgets \
+    jupyterlab \
+    jupyterlab_widgets
+pip3 install --break-system-packages --no-deps nglview==4.0
 
 # SET LOCALE
 ############
@@ -37,7 +63,7 @@ cat > $JUPYTER_PATH/kernels/ost-kernel/kernel.json <<EOF
     "-m", "ipykernel",
     "-f", "{connection_file}",
     "--InteractiveShellApp.exec_PYTHONSTARTUP=False",
-    "--InteractiveShellApp.exec_files=/usr/local/lib/python3.10/site-packages/ost/ost_startup.py"
+    "--InteractiveShellApp.exec_files=/usr/local/lib/python3.14/site-packages/ost/ost_startup.py"
   ],
   "env": {
   }
@@ -160,7 +186,7 @@ goes to CWD. Thus this sould work as expected out of the box.
 # IPYTHON ENV
 ##############################################################################
 export DNG_ROOT=$OST_ROOT
-export DNG_INITDIR=${DNG_ROOT}/lib/python3.10/site-packages/ost
+export DNG_INITDIR=${DNG_ROOT}/lib/python3.14/site-packages/ost
 
 
 %apprun IPython
@@ -194,7 +220,7 @@ export XDG_RUNTIME_DIR=""
 ##############################################################################
 # NOTEBOOK APP
 ##############################################################################
-jupyter notebook --NotebookApp.iopub_data_rate_limit=10000000 --no-browser "$@"
+jupyter notebook --ZMQChannelsWebsocketConnection.iopub_data_rate_limit=10000000 --no-browser "$@"
 
 %apphelp Notebook
 A Jupyter notebook playground with OST and nglview.
@@ -203,7 +229,7 @@ Usage:
 
     singularity run --app Notebook <IMAGE> [options]
 
-The Jupyter notebook is run by default with `--NotebookApp.iopub_data_rate_limit=10000000`
+The Jupyter notebook is run by default with `--ZMQChannelsWebsocketConnection.iopub_data_rate_limit=10000000`
 and `--no-browser` options.
 
 Useful options when running on remote server:
