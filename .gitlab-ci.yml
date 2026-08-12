@@ -17,7 +17,6 @@ test:ubuntu26.04:
     - apt-get install -y g++
     - apt-get install -y wget
     - apt-get install -y libsqlite3-dev
-    - apt-get install -y sip-dev
     - apt-get install -y libtiff-dev
     - apt-get install -y libfftw3-dev
     - apt-get install -y libeigen3-dev
