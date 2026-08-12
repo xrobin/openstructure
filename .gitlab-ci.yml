@@ -9,7 +9,7 @@ stages:
 # Ubuntu26.04 STAGE
 test:ubuntu26.04:
   stage: test
-  image: ubuntu:zz
+  image: ubuntu:26.04
   before_script:
     - echo "Running ubuntu26.04 'before_script'..."
     - apt-get update -y
