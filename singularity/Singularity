@@ -71,6 +71,11 @@ $OST_ROOT/bin/lddt "$@"
 %apphelp lDDT
 The Local Distance Difference Test.
 
+The lddt binary is deprecated. Use the new compare-structures implementation in
+the OST app instead:
+
+singularity run --app OST <IMAGE> compare-structures --help
+
 Usage:
 
     singularity run --app lDDT <IMAGE> [options] <mod1> [mod1 [mod2]] <re1>[,ref2,ref3]
