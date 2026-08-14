@@ -2279,9 +2279,8 @@ void ChainData::ToStream(std::ostream& stream,
                          Real max_error, bool avg_bfactors,
                          bool round_bfactors, bool skip_ss) const {
   Dump(stream, ch_name);
-  if(chain_type > std::numeric_limits<int8_t>::max()) {
-    throw ost::Error("ChainType out of bounds");
-  }
+  static_assert(ost::mol::CHAINTYPE_N_CHAINTYPES <= std::numeric_limits<int8_t>::max(),
+                "ChainType does not fit in int8_t OMF serialization");
   int8_t type = chain_type;
   stream.write(reinterpret_cast<char*>(&type), sizeof(int8_t));
   DumpResDefIndices(stream, res_def_indices);
