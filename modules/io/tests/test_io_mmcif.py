@@ -335,6 +335,16 @@ class TestMMCifInfo(unittest.TestCase):
                                      fault_tolerant=True)
 
 
+  def test_mmcif_fault_tolerant_struct_sheet_range(self):
+    # File is missing 'beg_label_seq_id' in category 'struct_sheet_range'.
+    # This should be tolerated by fault_tolerant=True.
+    p = os.path.join("testfiles", "mmcif", "cameo_beg_label_comp_id.cif")
+    with self.assertRaises(Exception):
+      ent, seqres, info = io.LoadMMCIF(p, seqres=True, info=True)
+    ent, seqres, info = io.LoadMMCIF(p, seqres=True, info=True,
+                                     fault_tolerant=True)
+
+
 if __name__== '__main__':
   from ost import testutils
   testutils.RunTests()

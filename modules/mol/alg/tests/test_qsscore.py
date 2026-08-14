@@ -223,13 +223,10 @@ class TestQSScore(unittest.TestCase):
         qs_scorer = QSScorer.FromMappingResult(res)
         score_result = qs_scorer.Score(res.mapping)
 
-        # The alignments from parasail slightly differ. The sequence identities
-        # are in the range 40% but slightly lower for parasail alignments.
-        # however, the parasail alignments appear less gappy and "nicer".
-        # They nevertheless lead to lower QS-score.
+        # The alignments from parasail slightly differ.
         if seq.alg.ParasailAvailable():
             self.assertAlmostEqual(score_result.QS_global, 0.14757304498883386, 2)
-            self.assertAlmostEqual(score_result.QS_best, 0.7878766697963304, 2)
+            self.assertAlmostEqual(score_result.QS_best, 0.8731105881770721, 2)
         else:
             self.assertAlmostEqual(score_result.QS_global, 0.14797023263299844, 2)
             self.assertAlmostEqual(score_result.QS_best, 0.8666616636985371, 2)
@@ -245,13 +242,10 @@ class TestQSScore(unittest.TestCase):
         res = mapper.GetRMSDMapping(ent_2, strategy="greedy_iterative")
         qs_scorer = QSScorer.FromMappingResult(res)
         score_result = qs_scorer.Score(res.mapping)
-        # The alignments from parasail slightly differ. The sequence identities
-        # are in the range 40% but slightly lower for parasail alignments.
-        # however, the parasail alignments appear less gappy and "nicer".
-        # They nevertheless lead to lower QS-score.
+        # The alignments from parasail slightly differ.
         if seq.alg.ParasailAvailable():
             self.assertAlmostEqual(score_result.QS_global, 0.14757304498883386, 2)
-            self.assertAlmostEqual(score_result.QS_best, 0.7878766697963304, 2)
+            self.assertAlmostEqual(score_result.QS_best, 0.8731105881770721, 2)
         else:
             self.assertAlmostEqual(score_result.QS_global, 0.14797023263299844, 2)
             self.assertAlmostEqual(score_result.QS_best, 0.8666616636985371, 2)

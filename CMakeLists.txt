@@ -22,6 +22,15 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.31.0")
   cmake_policy(SET CMP0177 NEW)
 endif()
 
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.27.0")
+  # See CMP0144 for more information.
+  # find_package(Boost) uses BoostConfig.cmake (CMP0167 NEW). Docs and build
+  # configs pass BOOST_ROOT as the Boost prefix; with CMP0144 NEW, find_package
+  # honors that upper-case <PACKAGENAME>_ROOT variable. Without it, CMake warns
+  # and ignores BOOST_ROOT as a search prefix.
+  cmake_policy(SET CMP0144 NEW)
+endif()
+
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.30.0")
   # See CMP0167 for more information
   # to summarize: Starting from boost 1.70, boost comes with a package
@@ -34,8 +43,8 @@ endif()
 project(OpenStructure CXX C)
 set (CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set (OST_VERSION_MAJOR 2)
-set (OST_VERSION_MINOR 11)
-set (OST_VERSION_PATCH 1)
+set (OST_VERSION_MINOR 12)
+set (OST_VERSION_PATCH 0)
 set (OST_VERSION_STRING ${OST_VERSION_MAJOR}.${OST_VERSION_MINOR}.${OST_VERSION_PATCH} )
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake_support)
 include(OST)
@@ -209,10 +218,10 @@ if(BOOST_VERSION)
   message(STATUS "forcing boost to version ${BOOST_VERSION}")
   set(_BOOST_MIN_VERSION ${BOOST_VERSION})
 endif()
-find_package(Boost ${_BOOST_MIN_VERSION} 
+set(Boost_PYTHON_VERSION "${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}")
+find_package(Boost ${_BOOST_MIN_VERSION}
              COMPONENTS unit_test_framework
                         filesystem
-                        system
                         iostreams
                         program_options
                         regex
@@ -252,7 +261,11 @@ if (ENABLE_GFX)
   find_package(OpenGL REQUIRED)
 endif()
 
-find_package(EIGEN 3.2.0 REQUIRED)
+find_package(Eigen3 5 QUIET NO_MODULE)
+if (NOT Eigen3_FOUND)
+  find_package(Eigen3 3.3.1 REQUIRED NO_MODULE)
+endif()
+message(STATUS "Found Eigen3 ${Eigen3_VERSION} at ${Eigen3_DIR}")
 find_package(SQLITE3 3.7.13 REQUIRED)
 find_package(PNG REQUIRED)
 find_package(FFTW REQUIRED)
@@ -272,8 +285,8 @@ endif(ENABLE_PARASAIL)
 if (ENABLE_STATIC)
   set(Boost_LIBRARIES)
   set(Boost_USE_STATIC_LIBS ON)
-  find_package(Boost ${_BOOST_MIN_VERSION} 
-               COMPONENTS filesystem system iostreams regex thread REQUIRED)
+  find_package(Boost ${_BOOST_MIN_VERSION}
+               COMPONENTS filesystem iostreams regex thread REQUIRED)
   find_package(ZLIB REQUIRED)
    
   if (UNIX AND NOT APPLE)
@@ -324,9 +337,8 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang")
 endif(CMAKE_C_COMPILER_ID MATCHES "Clang")
 
 # basic environment
-include_directories(${Boost_INCLUDE_DIRS} 
-                    ${FFTW_INCLUDE_DIRS} 
-                    ${EIGEN3_INCLUDE_DIRS}
+include_directories(${Boost_INCLUDE_DIRS}
+                    ${FFTW_INCLUDE_DIRS}
                     ${TIFF_INCLUDE_DIR}
                     ${PNG_INCLUDE_DIRS}
                     ${OPEN_MM_INCLUDE_DIRS}

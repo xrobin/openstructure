@@ -102,6 +102,9 @@ private:
   LoopType                                loop_type_;  
   conop::AtomSpec                         atom_;
   bool                                    valid_atom_;
+  conop::BondSpec                         bond_;
+  String                                  bond_atom_one_;
+  String                                  bond_atom_two_;
   conop::Compound::Dialect                dialect_;
   bool                                    ignore_reserved_;
   bool                                    ignore_obsolete_;

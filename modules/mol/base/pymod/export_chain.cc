@@ -126,28 +126,51 @@ void export_Chain()
     .def(geom::VectorAdditions<ChainHandleList>())    
   ;
 
-  {
-    enum_<ChainType>("ChainType")
-      .value("CHAINTYPE_POLY",                  CHAINTYPE_POLY)
-      .value("CHAINTYPE_NON_POLY",              CHAINTYPE_NON_POLY)
-      .value("CHAINTYPE_WATER",                 CHAINTYPE_WATER)
-      .value("CHAINTYPE_POLY_PEPTIDE_D",        CHAINTYPE_POLY_PEPTIDE_D)
-      .value("CHAINTYPE_POLY_PEPTIDE_L",        CHAINTYPE_POLY_PEPTIDE_L)
-      .value("CHAINTYPE_POLY_DN",               CHAINTYPE_POLY_DN)
-      .value("CHAINTYPE_POLY_RN",               CHAINTYPE_POLY_RN)
-      .value("CHAINTYPE_POLY_SAC_D",            CHAINTYPE_POLY_SAC_D)
-      .value("CHAINTYPE_POLY_SAC_L",            CHAINTYPE_POLY_SAC_L)
-      .value("CHAINTYPE_POLY_DN_RN",            CHAINTYPE_POLY_DN_RN)
-      .value("CHAINTYPE_UNKNOWN",               CHAINTYPE_UNKNOWN)
-      .value("CHAINTYPE_MACROLIDE",             CHAINTYPE_MACROLIDE)
-      .value("CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE", CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE)
-      .value("CHAINTYPE_POLY_PEPTIDE_DN_RN",    CHAINTYPE_POLY_PEPTIDE_DN_RN)
-      .value("CHAINTYPE_BRANCHED",              CHAINTYPE_BRANCHED)
-      .value("CHAINTYPE_OLIGOSACCHARIDE",       CHAINTYPE_OLIGOSACCHARIDE)
-      .value("CHAINTYPE_N_CHAINTYPES",          CHAINTYPE_N_CHAINTYPES)
-      .export_values()
-    ;
-  }
+  
+  enum_<ChainType>("ChainType")
+    .value("CHAINTYPE_POLY",                  CHAINTYPE_POLY)
+    .value("CHAINTYPE_NON_POLY",              CHAINTYPE_NON_POLY)
+    .value("CHAINTYPE_WATER",                 CHAINTYPE_WATER)
+    .value("CHAINTYPE_POLY_PEPTIDE_D",        CHAINTYPE_POLY_PEPTIDE_D)
+    .value("CHAINTYPE_POLY_PEPTIDE_L",        CHAINTYPE_POLY_PEPTIDE_L)
+    .value("CHAINTYPE_POLY_DN",               CHAINTYPE_POLY_DN)
+    .value("CHAINTYPE_POLY_RN",               CHAINTYPE_POLY_RN)
+    .value("CHAINTYPE_POLY_SAC_D",            CHAINTYPE_POLY_SAC_D)
+    .value("CHAINTYPE_POLY_SAC_L",            CHAINTYPE_POLY_SAC_L)
+    .value("CHAINTYPE_POLY_DN_RN",            CHAINTYPE_POLY_DN_RN)
+    .value("CHAINTYPE_UNKNOWN",               CHAINTYPE_UNKNOWN)
+    .value("CHAINTYPE_MACROLIDE",             CHAINTYPE_MACROLIDE)
+    .value("CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE", CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE)
+    .value("CHAINTYPE_POLY_PEPTIDE_DN_RN",    CHAINTYPE_POLY_PEPTIDE_DN_RN)
+    .value("CHAINTYPE_BRANCHED",              CHAINTYPE_BRANCHED)
+    .value("CHAINTYPE_OLIGOSACCHARIDE",       CHAINTYPE_OLIGOSACCHARIDE)
+    .value("CHAINTYPE_N_CHAINTYPES",          CHAINTYPE_N_CHAINTYPES)
+    .export_values()
+  ;
+  
+  object ChainTypeClass = scope().attr("ChainType");
+  ChainTypeClass.attr("__str__") = make_function(+[](ChainType c) {
+    switch (c) {
+      case CHAINTYPE_POLY:                  return "CHAINTYPE_POLY";
+      case CHAINTYPE_NON_POLY:              return "CHAINTYPE_NON_POLY";
+      case CHAINTYPE_WATER:                 return "CHAINTYPE_WATER";
+      case CHAINTYPE_POLY_PEPTIDE_D:        return "CHAINTYPE_POLY_PEPTIDE_D";
+      case CHAINTYPE_POLY_PEPTIDE_L:        return "CHAINTYPE_POLY_PEPTIDE_L";
+      case CHAINTYPE_POLY_DN:               return "CHAINTYPE_POLY_DN";
+      case CHAINTYPE_POLY_RN:               return "CHAINTYPE_POLY_RN";
+      case CHAINTYPE_POLY_SAC_D:            return "CHAINTYPE_POLY_SAC_D";
+      case CHAINTYPE_POLY_SAC_L:            return "CHAINTYPE_POLY_SAC_L";
+      case CHAINTYPE_POLY_DN_RN:            return "CHAINTYPE_POLY_DN_RN";
+      case CHAINTYPE_UNKNOWN:               return "CHAINTYPE_UNKNOWN";
+      case CHAINTYPE_MACROLIDE:             return "CHAINTYPE_MACROLIDE";
+      case CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE: return "CHAINTYPE_CYCLIC_PSEUDO_PEPTIDE";
+      case CHAINTYPE_POLY_PEPTIDE_DN_RN:    return "CHAINTYPE_POLY_PEPTIDE_DN_RN";
+      case CHAINTYPE_BRANCHED:              return "CHAINTYPE_BRANCHED";
+      case CHAINTYPE_OLIGOSACCHARIDE:       return "CHAINTYPE_OLIGOSACCHARIDE";
+      case CHAINTYPE_N_CHAINTYPES:          return "CHAINTYPE_N_CHAINTYPES";
+      default:                              return "CHAINTYPE_UNKNOWN";
+    }
+  });
 
   def("ChainTypeFromString", ChainTypeFromStringPtr);
   def("StringFromChainType", &StringFromChainType);

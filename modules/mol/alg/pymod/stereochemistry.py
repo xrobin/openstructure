@@ -360,31 +360,22 @@ def GetAngleParam(a1, a2, a3, stereo_data = None, stereo_link_data = None):
 
 
 class ClashInfo:
-    """ Object to hold info on clash
+    """ Object to hold info on clashing atom
 
     Constructor arguments are available as attributes:
 
-    * a1 (:class:`ost.mol.AtomHandle`)
-    * a2 (:class:`ost.mol.AtomHandle`)
-    * dist (:class:`float`)
-    * tolerated_dist (:class:`float`)
+    * a (:class:`ost.mol.AtomHandle`)
     """
-    def __init__(self, a1, a2, dist, tolerated_dist):
-        self.a1 = a1
-        self.a2 = a2
-        self.dist = dist
-        self.tolerated_dist = tolerated_dist
+    def __init__(self, a):
+        self.a = a
 
-    def ToJSON(self, decimals = 3):
+    def ToJSON(self):
         """ Return JSON serializable dict
 
-        Atoms are represented by a string in format:
+        Clashing atom is represented by a string in format:
         <chain_name>.<resnum>.<resnum_inscode>.<atom_name>
         """
-        return {"a1": _AtomToQualifiedName(self.a1),
-                "a2": _AtomToQualifiedName(self.a2),
-                "dist": round(self.dist, decimals),
-                "tolerated_dist": round(self.tolerated_dist, decimals)}
+        return {"a": _AtomToQualifiedName(self.a)}
 
 
 class BondViolationInfo:
@@ -501,7 +492,6 @@ def GetClashes(ent, vdw_radii = None, tolerance = 1.5, disulfid_dist = 2.03,
     min_tolerance = min(tolerance, disulfid_tolerance)
     radius = 2*max_radius-min_tolerance
 
-    done = set()
     return_list = list()
     for a in clash_ent.atoms:
         a_hash = a.handle.GetHashCode()
@@ -517,12 +507,8 @@ def GetClashes(ent, vdw_radii = None, tolerance = 1.5, disulfid_dist = 2.03,
                     thresh += vdw_radii[ca.GetElement().upper()]
                     thresh -= tolerance
                 if d < thresh:
-                    # check if already there, add if not
-                    hash_pair = (min(a_hash, ca_hash), max(a_hash, ca_hash))
-                    if hash_pair not in done:
-                        done.add(hash_pair)
-                        return_list.append(ClashInfo(a.handle, ca.handle, d,
-                                                     thresh))
+                    return_list.append(ClashInfo(a.handle))
+                    break
     return return_list
 
 
@@ -634,8 +620,7 @@ def StereoCheck(ent, stereo_data = None, stereo_link_data = None):
 
     # set stereo problems as properties on an atom level
     for clash in clashes:
-        clash.a1.SetIntProp("stereo_problem", 1)
-        clash.a2.SetIntProp("stereo_problem", 1)
+        clash.a.SetIntProp("stereo_problem", 1)
 
     for bond in bad_bonds:
         bond.a1.SetIntProp("stereo_problem", 1)

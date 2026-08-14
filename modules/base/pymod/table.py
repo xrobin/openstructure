@@ -2687,16 +2687,20 @@ Statistics for column %(col)s
     '''
     try:
       import numpy as np
-      
-      enr = self.ComputeEnrichment(score_col, class_col, score_dir,
-                                          class_dir, class_cutoff)
-      
-      if enr==None:
-        return None
-      return np.trapz(enr[1], enr[0])
+      trapezoid = np.trapezoid
     except ImportError:
       LogError("Function needs numpy, but I could not import it.")
       raise
+    except AttributeError:
+      # numpy.trapezoid added in 2.0; numpy.trapz removed in 2.4
+      trapezoid = np.trapz
+
+    enr = self.ComputeEnrichment(score_col, class_col, score_dir,
+                                        class_dir, class_cutoff)
+    
+    if enr==None:
+      return None
+    return trapezoid(enr[1], enr[0])
 
   def ComputeROC(self, score_col, class_col, score_dir='-',
                  class_dir='-', class_cutoff=2.0):
@@ -2798,16 +2802,20 @@ Statistics for column %(col)s
     '''
     try:
       import numpy as np
-
-      roc = self.ComputeROC(score_col, class_col, score_dir,
-                            class_dir, class_cutoff)
-
-      if not roc:
-        return None
-      return np.trapz(roc[1], roc[0])
+      trapezoid = np.trapezoid
     except ImportError:
       LogError("Function needs numpy, but I could not import it.")
       raise
+    except AttributeError:
+      # numpy.trapezoid added in 2.0; numpy.trapz removed in 2.4
+      trapezoid = np.trapz
+
+    roc = self.ComputeROC(score_col, class_col, score_dir,
+                          class_dir, class_cutoff)
+
+    if not roc:
+      return None
+    return trapezoid(roc[1], roc[0])
     
   def ComputeLogROCAUC(self, score_col, class_col, score_dir='-',
                        class_dir='-', class_cutoff=2.0):

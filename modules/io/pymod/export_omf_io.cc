@@ -37,6 +37,15 @@ namespace{
     return l;
   }
 
+  template<typename T>
+  std::vector<T> ListToVec(const boost::python::list& l){
+    std::vector<T> vec;
+    for (int i = 0; i < boost::python::len(l); ++i){
+      vec.push_back(boost::python::extract<T>(l[i]));
+    }
+    return vec;
+  }
+
   PyObject* wrap_to_bytes(OMFPtr omf) {
     String str = omf->ToString();
     return PyBytes_FromStringAndSize(str.c_str(), str.size());
@@ -68,6 +77,10 @@ namespace{
                            bu_info.GetBUChains());
   }
 
+  OMFPtr wrap_select_chains(OMFPtr omf, const boost::python::list& chain_names) {
+    return omf->SelectChains(ListToVec<String>(chain_names));
+  }
+
   tuple wrap_trace(OMFPtr omf,
                    const String& cname,
                    const String& aname) {
@@ -75,6 +88,17 @@ namespace{
     geom::Vec3List pos;
     omf->Trace(cname, aname, rnums, pos);
     return boost::python::make_tuple(VecToList(rnums), pos);
+  }
+
+  tuple wrap_traces(OMFPtr omf,
+                    const String& cname,
+                    const boost::python::list& anames) {
+    std::vector<int> rnums;
+    std::vector<geom::Vec3List> pos;
+    std::vector<String> v_anames = ListToVec<String>(anames);
+    omf->Traces(cname, v_anames, rnums, pos);
+    boost::python::list return_pos = VecToList(pos);
+    return boost::python::make_tuple(VecToList(rnums), return_pos);
   }
 
   boost::python::list wrap_get_rnums(OMFPtr omf, const String& cname) {
@@ -127,6 +151,8 @@ void export_omf_io() {
     .def("GetSequence", &OMF::GetSequence, (arg("cname")))
     .def("GetRNums", &wrap_get_rnums, (arg("cname")))
     .def("ToAssembly", &wrap_to_assembly, (arg("bu_info")))
+    .def("SelectChains", &wrap_select_chains, (arg("chain_names")))
     .def("Trace", &wrap_trace, (arg("cname"), arg("aname")))
+    .def("Traces", &wrap_traces, (arg("cname"), arg("anames")))
   ;
 }

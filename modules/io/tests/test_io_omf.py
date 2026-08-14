@@ -132,6 +132,13 @@ class TestOMF(unittest.TestCase):
         loaded_ent = loaded_omf.GetAU()
         self.assertTrue(compare_ent(self.ent, loaded_ent))
 
+    def test_select_chains(self):
+        omf = io.OMF.FromEntity(self.ent)
+        omf_bytes = omf.ToBytes()
+        loaded_omf = io.OMF.FromBytes(omf_bytes)
+        loaded_ent = loaded_omf.SelectChains(["B", "S"]).GetAU()
+        self.assertTrue(compare_ent(self.ent.Select("cname=S,B"), loaded_ent))
+
     def test_default_peplib(self):
         omf = io.OMF.FromEntity(self.ent)
         omf_bytes = omf.ToBytes()

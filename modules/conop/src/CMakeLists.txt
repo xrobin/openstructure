@@ -44,9 +44,13 @@ if (COMPOUND_LIB)
     # this ensures that file is called 'compounds.chemlib' (as required)
     set(TO "${STAGE_DIR}/share/openstructure/compounds.chemlib")
     file(MAKE_DIRECTORY "${STAGE_DIR}/share/openstructure")
-    add_custom_command(TARGET "ost_conop" PRE_BUILD
+    # Keep the staged compounds.chemlib in sync when COMPOUND_LIB changes.
+    add_custom_command(OUTPUT "${TO}"
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different "${COMPOUND_LIB}" "${TO}"
           DEPENDS "${COMPOUND_LIB}"
-          COMMAND ${CMAKE_COMMAND} -E copy_if_different ${COMPOUND_LIB} ${TO})
+          COMMENT "Copying compounds.chemlib into stage")
+    add_custom_target(copy_compound_lib DEPENDS "${TO}")
+    add_dependencies(ost_conop copy_compound_lib)
     install(FILES ${TO} DESTINATION "share/openstructure")
   else()
     message(FATAL_ERROR "${COMPOUND_LIB} does not exist. \n"

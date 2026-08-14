@@ -104,6 +104,7 @@ if(ENABLE_INFO)
 else()
   list(APPEND LINK ${Boost_REGEX_LIBRARY})
 endif()
+list(APPEND LINK Eigen3::Eigen)
 
 module(NAME mol SOURCES ${OST_MOL_SOURCES}
        HEADERS ${OST_MOL_IMPL_HEADERS} IN_DIR impl

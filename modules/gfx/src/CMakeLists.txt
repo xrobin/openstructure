@@ -196,7 +196,8 @@ module(NAME gfx SOURCES ${OST_GFX_SOURCES} ${OST_GFX_MAP_SOURCES}
                ${OST_GFX_COLOR_OPS_HEADERS} IN_DIR color_ops
                ${OST_GLEW_HEADERS}
                ${OST_GFX_HEADERS} ${OST_GFX_MAP_HEADERS}
-       DEPENDS_ON ${OST_GFX_DEPENDENCIES})
+       DEPENDS_ON ${OST_GFX_DEPENDENCIES}
+       LINK Eigen3::Eigen)
 
 include_directories(${PNG_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIR})
 

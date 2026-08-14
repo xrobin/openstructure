@@ -1495,14 +1495,18 @@ namespace{
     uint32_t size;
     stream.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
     vec.resize(size);
-    stream.read(reinterpret_cast<char*>(&vec[0]), size*sizeof(T));
+    if(size > 0) {
+      stream.read(reinterpret_cast<char*>(vec.data()), size*sizeof(T));
+    }
   }
 
   template<typename T>
   void DumpIntVec(std::ostream& stream, const std::vector<T>& vec) {
     uint32_t size = vec.size();
     stream.write(reinterpret_cast<char*>(&size), sizeof(uint32_t));
-    stream.write(reinterpret_cast<const char*>(&vec[0]), size*sizeof(T));
+    if(size > 0) {
+      stream.write(reinterpret_cast<const char*>(vec.data()), size*sizeof(T));
+    }
   }
 
   void Load(std::istream& stream, std::vector<int>& vec) {
@@ -1620,8 +1624,10 @@ namespace{
       if(vec[i]) bit_vector[i/8] += (1 << (i%8));
     }
     stream.write(reinterpret_cast<char*>(&size), sizeof(uint32_t));
-    stream.write(reinterpret_cast<char*>(&bit_vector[0]),
-                                         n_bytes * sizeof(uint8_t));
+    if(n_bytes > 0) {
+      stream.write(reinterpret_cast<char*>(bit_vector.data()),
+                                           n_bytes * sizeof(uint8_t));
+    }
   }
 
   void Load(std::istream& stream,
@@ -1630,8 +1636,10 @@ namespace{
     stream.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
     uint32_t n_bytes = std::ceil(static_cast<Real>(size)/8);
     std::vector<uint8_t> bit_vector(n_bytes);
-    stream.read(reinterpret_cast<char*>(&bit_vector[0]),
-                                        n_bytes * sizeof(uint8_t));
+    if(n_bytes > 0) {
+      stream.read(reinterpret_cast<char*>(bit_vector.data()),
+                                          n_bytes * sizeof(uint8_t));
+    }
     vec.resize(size);
     for(uint i = 0; i < size; ++i) {
       vec[i] = static_cast<bool>(bit_vector[i/8] & (1 << (i%8)));
@@ -5441,6 +5449,46 @@ OMFPtr OMF::ToAssembly(const std::vector<std::vector<String> >& au_chains,
   return omf_ptr;
 }
 
+OMFPtr OMF::SelectChains(const std::vector<String>& chain_names) const {
+
+  OMFPtr omf_ptr(new OMF);
+
+  // copy common attributes
+  omf_ptr->name_ = name_;
+  omf_ptr->max_error_ = max_error_;
+  omf_ptr->residue_definitions_ = residue_definitions_;
+  omf_ptr->options_ = options_;
+  omf_ptr->version_ = version_;
+
+  std::set<String> selected_chains(chain_names.begin(), chain_names.end());
+
+  for(auto it = chain_names.begin(); it != chain_names.end(); ++it) {
+    auto data_it = chain_data_.find(*it);
+    if(data_it == chain_data_.end()) {
+      std::stringstream ss;
+      ss << "Cannot select non-existent chain '"<<*it<<"'.";
+      throw ost::Error(ss.str());
+    }
+    omf_ptr->chain_data_[*it] = ChainDataPtr(new ChainData(*data_it->second));
+  }
+
+  // deal with interchain bonds - only keep the ones where both involved
+  // chains are part of the selection
+  int n_bonds = bond_orders_.size();
+  for(int i = 0; i < n_bonds; ++i) {
+    if(selected_chains.find(bond_chain_names_[2*i]) != selected_chains.end() &&
+       selected_chains.find(bond_chain_names_[2*i+1]) != selected_chains.end()) {
+      omf_ptr->bond_chain_names_.push_back(bond_chain_names_[2*i]);
+      omf_ptr->bond_chain_names_.push_back(bond_chain_names_[2*i+1]);
+      omf_ptr->bond_atoms_.push_back(bond_atoms_[2*i]);
+      omf_ptr->bond_atoms_.push_back(bond_atoms_[2*i+1]);
+      omf_ptr->bond_orders_.push_back(bond_orders_[i]);
+    }
+  }
+
+  return omf_ptr;
+}
+
 void OMF::Trace(const String& cname, const String& aname,
                 std::vector<int>& rnums, geom::Vec3List& pos) const {
 
@@ -5463,6 +5511,49 @@ void OMF::Trace(const String& cname, const String& aname,
     if(a_idx != -1) {
       rnums.push_back(chain_data->rnums[res_idx]);
       pos.push_back(chain_data->positions[pos_idx + a_idx]);
+    }
+    ++res_idx;
+    pos_idx += res_def.anames.size();
+  }
+}
+
+void OMF::Traces(const String& cname, const std::vector<String>& anames,
+                 std::vector<int>& rnums, std::vector<geom::Vec3List>& pos) const {
+
+  rnums.clear();
+  size_t n_atoms = anames.size();
+  pos.resize(n_atoms);
+  for(size_t i = 0; i < n_atoms; ++i) {
+    pos[i].clear();
+  }
+
+  auto it = chain_data_.find(cname);
+  if(it == chain_data_.end()) {
+    std::stringstream ss;
+    ss << "Cannot get Traces from non-existent chain '"<<cname<<"'.";
+    throw ost::Error(ss.str());
+  }
+  ChainDataPtr chain_data = it->second;
+
+  int res_idx = 0;
+  int pos_idx = 0;
+  std::vector<int> pos_indices(n_atoms, 0);
+  for(auto res_def_idx: chain_data->res_def_indices) {
+    const ResidueDefinition& res_def = residue_definitions_[res_def_idx];
+    bool all_there = true;
+    for(size_t i = 0; i < n_atoms; ++i) {
+      int a_idx = res_def.GetIdx(anames[i]);
+      if(a_idx == -1) {
+        all_there = false;
+        break;
+      }
+      pos_indices[i] = a_idx;
+    }
+    if(all_there) {
+      rnums.push_back(chain_data->rnums[res_idx]);
+      for(size_t i = 0; i < n_atoms; ++i) {
+        pos[i].push_back(chain_data->positions[pos_idx + pos_indices[i]]);
+      }
     }
     ++res_idx;
     pos_idx += res_def.anames.size();

@@ -271,34 +271,43 @@ bool MMCifReader::OnBeginLoop(const StarLoopDesc& header)
     cat_available = true;
   } else if (header.GetCategory() == "struct_conf") {
     category_ = STRUCT_CONF;
-    // mandatory items
-    this->TryStoreIdx(SC_BEG_LABEL_ASYM_ID, "beg_label_asym_id", header);
-    this->TryStoreIdx(SC_BEG_LABEL_COMP_ID, "beg_label_comp_id", header);
-    this->TryStoreIdx(SC_BEG_LABEL_SEQ_ID,  "beg_label_seq_id", header);
-    this->TryStoreIdx(SC_CONF_TYPE_ID,      "conf_type_id", header);
-    this->TryStoreIdx(SC_END_LABEL_ASYM_ID, "end_label_asym_id", header);
-    this->TryStoreIdx(SC_END_LABEL_COMP_ID, "end_label_comp_id", header);
-    this->TryStoreIdx(SC_END_LABEL_SEQ_ID,  "end_label_seq_id", header);
-    this->TryStoreIdx(SC_ID,                "id", header);
-    // optional items
-    indices_[SC_BEG_AUTH_ASYM_ID] = header.GetIndex("beg_auth_asym_id");
-    indices_[SC_END_AUTH_ASYM_ID] = header.GetIndex("end_auth_asym_id");
-    cat_available = true;
+    try {
+      // mandatory items
+      this->TryStoreIdx(SC_BEG_LABEL_SEQ_ID,  "beg_label_seq_id", header);
+      this->TryStoreIdx(SC_END_LABEL_SEQ_ID,  "end_label_seq_id", header);
+      this->TryStoreIdx(SC_BEG_LABEL_ASYM_ID, "beg_label_asym_id", header);
+      this->TryStoreIdx(SC_CONF_TYPE_ID,      "conf_type_id", header);
+      // optional items
+      indices_[SC_BEG_AUTH_ASYM_ID] = header.GetIndex("beg_auth_asym_id");
+      indices_[SC_END_AUTH_ASYM_ID] = header.GetIndex("end_auth_asym_id");
+      cat_available = true;
+    } catch (const IOException& e) {
+      if (profile_.fault_tolerant) {
+        LOG_WARNING(e.what());
+        cat_available = false;
+      } else {
+        throw;
+      }
+    }
   } else if (header.GetCategory() == "struct_sheet_range") {
     category_ = STRUCT_SHEET_RANGE;
-    // mandatory items
-    this->TryStoreIdx(SSR_BEG_LABEL_ASYM_ID,     "beg_label_asym_id", header);
-    this->TryStoreIdx(SSR_BEG_LABEL_COMP_ID,     "beg_label_comp_id", header);
-    this->TryStoreIdx(SSR_BEG_LABEL_SEQ_ID,      "beg_label_seq_id", header);
-    this->TryStoreIdx(SSR_END_LABEL_ASYM_ID,     "end_label_asym_id", header);
-    this->TryStoreIdx(SSR_END_LABEL_COMP_ID,     "end_label_comp_id", header);
-    this->TryStoreIdx(SSR_END_LABEL_SEQ_ID,      "end_label_seq_id", header);
-    this->TryStoreIdx(SSR_SHEET_ID,              "sheet_id", header);
-    this->TryStoreIdx(SSR_ID,                    "id", header);
-    // optional items
-    indices_[SSR_BEG_AUTH_ASYM_ID] = header.GetIndex("beg_auth_asym_id");
-    indices_[SSR_END_AUTH_ASYM_ID] = header.GetIndex("end_auth_asym_id");
-    cat_available = true;
+    try {
+      // mandatory items
+      this->TryStoreIdx(SSR_BEG_LABEL_SEQ_ID,      "beg_label_seq_id", header);
+      this->TryStoreIdx(SSR_END_LABEL_SEQ_ID,      "end_label_seq_id", header);
+      this->TryStoreIdx(SSR_BEG_LABEL_ASYM_ID,     "beg_label_asym_id", header);
+      // optional items
+      indices_[SSR_BEG_AUTH_ASYM_ID] = header.GetIndex("beg_auth_asym_id");
+      indices_[SSR_END_AUTH_ASYM_ID] = header.GetIndex("end_auth_asym_id");
+      cat_available = true;
+    } catch (const IOException& e) {
+      if (profile_.fault_tolerant) {
+        LOG_WARNING(e.what());
+        cat_available = false;
+      } else {
+        throw;
+      }
+    }
   } else if (header.GetCategory() == "pdbx_database_PDB_obs_spr") {
     category_ = PDBX_DATABASE_PDB_OBS_SPR;
     // mandatory items
@@ -1423,7 +1432,6 @@ void MMCifReader::ParseStructSheetRange(const std::vector<StringRef>& columns)
   // the future
   if (restrict_chains_.size() == 0 ||
       restrict_chains_.find(chain_name.str()) != String::npos) {
-
     std::pair<bool,int> s_beg = this->TryGetInt(columns[indices_[SSR_BEG_LABEL_SEQ_ID]], // s_res_num
                                                 "struct_sheet_range.beg_label_seq_id",
                                                 profile_.fault_tolerant);
@@ -2132,33 +2140,65 @@ seq::SequenceList MMCifReader::GetSeqRes() const {
     comp_lib = conop::CompoundLibBasePtr(new ost::conop::MinimalCompoundLib);
   }
 
+  // Given a monomer id, look up its one-letter-code in the compound lib,
+  // falling back to 'X' (with a warning unless the residue is UNK)
+  auto mon_id_to_olc = [&comp_lib](const String& mon_id) -> char {
+    conop::CompoundPtr compound=comp_lib->FindCompound(mon_id, conop::Compound::PDB);
+    if (!compound) {
+      if (mon_id != "UNK") {
+        LOG_WARNING("unknown residue '" << mon_id << "' in SEQRES record. "
+                    "Setting one-letter-code to 'X'");
+      }
+      return 'X';
+    }
+    if (compound->GetOneLetterCode()=='?') {
+      return 'X';
+    }
+    return compound->GetOneLetterCode();
+  };
+
+  // Parses a _entity_poly.pdbx_seq_one_letter_code[_can] string: canonical
+  // amino acids appear as plain one-letter codes, non-standard monomers are
+  // wrapped in parentheses (e.g. "AC(MSE)DEFG") and get resolved via the
+  // compound lib, same as for mon_ids above
+  auto parse_olc_string = [&mon_id_to_olc](const String& olc_string) -> String {
+    String seqres;
+    seqres.reserve(olc_string.size());
+    size_t i = 0;
+    while (i < olc_string.size()) {
+      if (olc_string[i] == '(') {
+        size_t close = olc_string.find(')', i + 1);
+        String mon_id = olc_string.substr(i + 1, close - i - 1);
+        seqres.push_back(mon_id_to_olc(mon_id));
+        i = close + 1;
+      } else {
+        seqres.push_back(olc_string[i]);
+        ++i;
+      }
+    }
+    return seqres;
+  };
+
   // Generate the SEQRES for every entity
   for(auto const &entity_it: entity_desc_map_) {
     if (entity_it.second.entity_type == "polymer") {
-      entity_seqres_map[entity_it.first] = "";
-      auto mon_ids = entity_it.second.mon_ids;
-//      if (mon_ids.size() == 0) {
-//        // We hit this if there was an _entity_poly category but no _entity_poly_seq
-//        LOG_WARNING("No SEQRES found for entity '"
-//                    << entity_it.first << "'.");
-//      }
-      entity_seqres_map[entity_it.first].reserve(mon_ids.size());
-      for (auto const &mon_id: mon_ids) {
-        conop::CompoundPtr compound=comp_lib->FindCompound(mon_id, conop::Compound::PDB);
-        if (!compound) {
-          if (mon_id != "UNK") {
-            LOG_WARNING("unknown residue '" << mon_id << "' in SEQRES record. "
-                        "Setting one-letter-code to 'X'");
-          }
-          entity_seqres_map[entity_it.first].push_back('X');
-          continue;
+      String seqres = "";
+      if(!entity_it.second.mon_ids.empty()) {
+        // priority one: read SEQRES from _entity_poly_seq
+        auto& mon_ids = entity_it.second.mon_ids;
+        seqres.reserve(mon_ids.size());
+        for (auto const &mon_id: mon_ids) {
+          seqres.push_back(mon_id_to_olc(mon_id));
         }
-        if (compound->GetOneLetterCode()=='?') {
-          entity_seqres_map[entity_it.first].push_back('X');
-        } else {
-          entity_seqres_map[entity_it.first].push_back(compound->GetOneLetterCode());
-        }
+      } else if(!entity_it.second.seqres_canonical.empty()) {
+        // priority two: read SEQRES from _entity_poly.pdbx_seq_one_letter_code_can
+        seqres = parse_olc_string(entity_it.second.seqres_canonical);
+      } else if(!entity_it.second.seqres_pdbx.empty()) {
+        // priority three: read SEQRES from _entity_poly.pdbx_seq_one_letter_code
+        seqres = parse_olc_string(entity_it.second.seqres_pdbx);
       }
+
+      entity_seqres_map[entity_it.first] = seqres;
     }
   }
 
@@ -2167,10 +2207,13 @@ seq::SequenceList MMCifReader::GetSeqRes() const {
     auto entity_seqres_map_it = entity_seqres_map.find(css.second);
     if (entity_seqres_map_it != entity_seqres_map.end()) {
       if (entity_seqres_map_it->second == "") {
-        // We hit this if there was an _entity_poly category but no _entity_poly_seq
-        LOG_WARNING("No SEQRES found for chain '"
-                    << css.first << "'. Most likely the entity_poly_seq "
-                    << "category was missing from the input file.");
+        // We hit this if there was an _entity_poly category but no SEQRES source
+        LOG_WARNING("No SEQRES found for polymer chain '"
+                    << css.first << "'. Most likely there was a missing SEQRES "
+                    "source for entity (entity_poly_seq category or "
+                    "_entity_poly.pdbx_seq_one_letter_code_can/"
+                    "_entity_poly.pdbx_seq_one_letter_code data items) "
+                    "in the input file.");
       } else {
         seqres_list.AddSequence(seq::CreateSequence(css.first.GetName(),
                                                     entity_seqres_map_it->second));

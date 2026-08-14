@@ -703,8 +703,7 @@ std::pair<long int,long int> LocalDistDiffTest(const EntityView& mdl, const Glob
   }
   std::vector<std::pair<long int, long int> > overlap_list(mdl.GetResidueCount(), std::pair<long int, long int>(0, 0));
   check_and_swap(glob_dist_list,mdl,cutoff_list,sequence_separation,overlap_list);
-  ChainView mdl_chain=mdl.GetChainList()[0];  
-  overlap_list.clear();
+  ChainView mdl_chain=mdl.GetChainList()[0];
   std::pair<long int, long int> total_ov(0, 0);
   for (GlobalRDMap::const_iterator i=glob_dist_list.begin(), e=glob_dist_list.end(); i!=e; ++i) {
     ResNum rn = i->first;

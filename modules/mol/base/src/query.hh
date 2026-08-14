@@ -130,7 +130,7 @@ inline String DLLEXPORT_OST_MOL QueryQuoteName(const String& name) {
     quote = '"';
   }
   // check problematic \ at end (escapes quotation mark and breaks logic)
-  if (name[name.length() - 1] == '\\') {
+  if (!name.empty() && name.back() == '\\') {
     throw Error("Cannot quote chain name " + name + " because it ends in \\.");
   }
   return quote + name + quote;

@@ -26,6 +26,7 @@ std::pair<bool, int> StringRef::to_int() const
 {
   int n=0;
   bool empty=true;
+  bool num_read = false;
   int sig=1;
   // skip empty characters... at beginning
   for (const char* c=begin_; c!=end_; ++c) {
@@ -34,14 +35,20 @@ std::pair<bool, int> StringRef::to_int() const
       sig=-1;
       continue;
     }
+    if (*c=='+' && empty) {
+      // just swallow leading '+'' without changing sig
+      empty=false;
+      continue;
+    }
     if (*c>='0' && *c<='9') {
       empty=false;
+      num_read=true;
       n=n*10+int(*c-'0');
       continue;
     }
     return std::make_pair(false, 0);
   }
-  if (empty) {
+  if (!num_read) {
     return std::make_pair(false, 0);
   }
   return std::make_pair(true, sig*n);

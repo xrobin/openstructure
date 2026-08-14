@@ -54,6 +54,7 @@ vector.hh
 
 module(NAME geom
        HEADERS ${OST_GEOM_EXPORT_HELPERS} IN_DIR export_helper ${OST_GEOM_HEADERS}
-       SOURCES ${OST_GEOM_SOURCES})
+       SOURCES ${OST_GEOM_SOURCES}
+       LINK Eigen3::Eigen)
 add_dependencies(ost_geom ost_config)
 
