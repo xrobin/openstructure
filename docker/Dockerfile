@@ -1,8 +1,8 @@
-FROM ubuntu:22.04
+FROM ubuntu:26.04
 
 # ARGUMENTS
 ###########
-ARG OPENSTRUCTURE_VERSION="2.11.1"
+ARG OPENSTRUCTURE_VERSION="2.12.0"
 ARG SRC_FOLDER="/usr/local/src"
 ARG CPUS_FOR_MAKE=2
 
@@ -16,7 +16,6 @@ RUN apt-get update -y && apt-get install -y cmake \
                                             wget \
                                             tar \
                                             libsqlite3-dev \
-                                            sip-dev \
                                             libtiff-dev \
                                             libfftw3-dev \
                                             libeigen3-dev \
