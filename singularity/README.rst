@@ -28,7 +28,7 @@ Available apps
 This container includes the following apps:
  * **OST** - OpenStructure binary
  * **IPython** - OST-powered iPython shell
- * **Notebook** - A Jupyter notebook playground with OST and nglview
+ * **Notebook** - A Jupyter notebook playground with OST and py3Dmol
  * **lDDT** - The Local Distance Difference Test
  * **Molck** - Molecular checker
  * **ChemdictTool** - Creating or update a compound library

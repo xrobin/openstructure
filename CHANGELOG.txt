@@ -1,4 +1,11 @@
-Changes in develop (Release 2.12.0)
+Changes in develop
+--------------------------------------------------------------------------------
+
+ * Replace molecular viewer for jupyter notebooks in Singularity container. Use
+   py3Dmol instead of nglview.
+
+
+Changes in Release 2.12.0
 --------------------------------------------------------------------------------
  * Improved LDDT stereochemistry checks efficiency by changing
    ost.mol.alg.stereochemistry.ClashInfo to store only the clashing atom

@@ -12,35 +12,13 @@ ln -sf /bin/bash /bin/sh
 # INSTALL SYSTEM DEPS
 #####################
 apt-get update -y && apt-get install -y python3-pip
-# nglview==4.0.1 ships a Python side that declares a different widget
-# frontend version than the JS labextension it bundles, which breaks
-# widget loading in JupyterLab/Notebook (upstream issue:
-# https://github.com/nglviewer/nglview/issues/1172). Pin to 4.0, the
-# last release where the two sides still agree, until upstream fixes it.
-#
-# nglview==4.0 also pins numpy<2.3, which would otherwise make pip try
-# to downgrade the apt-managed system numpy (dpkg-installed, no RECORD
-# file, and the version OST's own Python bindings are built against).
-# This upper bound looks stale rather than a real incompatibility:
-# nglview has no compiled extension linked against the numpy C-API (it
-# is pure Python + a prebuilt JS widget), it has been verified to work
-# fine against numpy>=2.3, and e.g. Nixpkgs overrides this exact same
-# pin for the same reason (see its nglview package definition). So we
-# install nglview with --no-deps to skip just that conflicting pin,
-# but list its other (current) real dependencies explicitly below so
-# pip still resolves/verifies those normally instead of silently
-# trusting that `jupyter` happens to cover them. If a future nglview
-# release adds a genuinely new dependency, it will only surface at
-# runtime (import error in the Notebook app) rather than at build
-# time -- re-run this install without --no-deps when bumping the
-# nglview pin to check for that.
 pip3 install --break-system-packages \
     ipython \
     jupyter \
     ipywidgets \
     jupyterlab \
-    jupyterlab_widgets
-pip3 install --break-system-packages --no-deps nglview==4.0
+    jupyterlab_widgets \
+    py3Dmol
 
 # SET LOCALE
 ############
@@ -223,7 +201,7 @@ export XDG_RUNTIME_DIR=""
 jupyter notebook --ZMQChannelsWebsocketConnection.iopub_data_rate_limit=10000000 --no-browser "$@"
 
 %apphelp Notebook
-A Jupyter notebook playground with OST and nglview.
+A Jupyter notebook playground with OST and py3Dmol.
 
 Usage:
 
@@ -242,8 +220,8 @@ Useful options when running on remote server:
 
 Copy the URL to the browser and launch the notebook with OST kernel. This will
 load all necessary OST components just like in the OST shell. We also enabled
-the nglview widget to interactively view molecular structures and trajectories.
-For more details on how to use nglview see http://nglviewer.org/nglview/latest/.
+the py3Dmol widget to interactively view molecular structures and trajectories.
+For more details on how to use py3Dmol see https://3dmol.org/.
 
 To list of all available options:
 
@@ -260,7 +238,7 @@ Singularity container for OST $OPENSTRUCTURE_VERSION.
 This container includes the following apps:
  * OST - OpenStructure binary
  * IPython - OST-powered iPython shell
- * Notebook - A Jupyter notebook palyground with OST and nglview
+ * Notebook - A Jupyter notebook palyground with OST and py3Dmol
  * lDDT - The Local Distance Difference Test
  * Molck - Molecular checker
  * ChemdictTool - Creating or update a compound library
@@ -276,7 +254,7 @@ Singularity container for OST.
 This container includes the following apps:
  * OST - OpenStructure binary
  * IPython - OST-powered iPython shell
- * Notebook - A Jupyter notebook palyground with OST and nglview
+ * Notebook - A Jupyter notebook palyground with OST and py3Dmol
  * lDDT - The Local Distance Difference Test
  * Molck - Molecular checker
  * ChemdictTool - Creating or update a compound library
