@@ -133,9 +133,9 @@ Vec3 find_orthogonal_vector(const Vec3& xyz)
   //if (vecnormsqr <= numeric_limits<Real>::epsilon())
   
   Real components[3] = {
-    std::abs<Real>(xyz[0]),
-    std::abs<Real>(xyz[1]),
-    std::abs<Real>(xyz[2])
+    std::abs(xyz[0]),
+    std::abs(xyz[1]),
+    std::abs(xyz[2])
   };
         
   Real*  where = ::std::min_element(components, components+3);
