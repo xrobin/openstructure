@@ -64,8 +64,8 @@ RUN cd ${SRC_FOLDER} && \
 #############
 WORKDIR /home
 ENV OST_ROOT="/usr/local"
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
-ENV PYTHONPATH="/usr/local/lib/python3.10/site-packages"
+ENV LD_LIBRARY_PATH="/usr/local/lib"
+ENV PYTHONPATH="/usr/local/lib/python3.14/site-packages"
 ENV OPENSTRUCTURE_VERSION=$OPENSTRUCTURE_VERSION
 
 ENTRYPOINT ["ost"]
