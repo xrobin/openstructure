@@ -453,7 +453,7 @@ module(NAME gui SOURCES ${OST_GUI_MOCS} ${OST_GUI_SOURCES}
        DEPENDS_ON ost_gfx ost_io ost_mol_alg ost_seq_alg
        LINK ${QT_LIBRARIES}
             Boost::python
-            Python::Python
+            Python::Module
             ${SPNAV_LIBRARIES}
         NO_STATIC)
 

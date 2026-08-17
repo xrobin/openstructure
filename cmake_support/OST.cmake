@@ -543,7 +543,7 @@ macro(pymod)
     endif()
     target_link_libraries("_${_LIB_NAME}" ${_PARENT_LIB_NAME}
                           Boost::python
-                          Python::Python)
+                          Python::Module)
 
     set_target_properties("_${_LIB_NAME}"
                           PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PYMOD_STAGE_DIR})
