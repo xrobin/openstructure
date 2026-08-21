@@ -249,7 +249,11 @@ SDFReader::atom_data SDFReader::ParseAtom(const String& line, int line_num)
     else {
       String msg="Bad atom line %d: Not correct number of characters on the"
                  " line: %i (should be between 48 and 69)";
-      throw IOException(str(format(msg) % line_num % line.length()));
+      if (profile_.fault_tolerant) {
+        LOG_ERROR(str(format(msg) % line_num % line.length()));
+      } else {
+        throw IOException(str(format(msg) % line_num % line.length()));
+      }
     }
   }
   int anum = line_num-4;  // start at 1 on fifth line since first four lines are header
