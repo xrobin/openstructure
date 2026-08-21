@@ -281,8 +281,8 @@ void SDFReader::AddAtom(const atom_data& atom_tuple, int line_num, mol::EntityHa
                     boost::lexical_cast<Real>(boost::trim_copy(s_posz)));
   } catch(boost::bad_lexical_cast&) {
     String msg="Bad atom line %d: Can't convert coordinates to "
-               "floating point numbers";
-    throw IOException(str(format(msg) % line_num));
+               "floating point numbers (x='%s', y='%s', z='%s')";
+    throw IOException(str(format(msg) % line_num % s_posx % s_posy % s_posz));
   }
 
   String ele=boost::trim_copy(s_ele);
