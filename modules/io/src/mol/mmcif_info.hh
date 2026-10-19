@@ -1016,8 +1016,9 @@ struct DLLEXPORT_OST_IO MMCifInfoChemCompBond {
 /// error, or are dropped with a warning in fault tolerant mode.
 ///
 /// \warning These definitions are not a compound library: they only contain
-/// atoms, bonds and chem class, and the same id doesn't mean the same molecule
-/// as in the chemical component dictionary (predictors reuse its ids for other
+/// atoms, bonds and chem class (no one letter code, chem type, charges or
+/// leaving atoms), and the same id doesn't mean the same molecule as in the
+/// chemical component dictionary (predictors reuse its ids for other
 /// molecules, e.g. "LIG").
 struct DLLEXPORT_OST_IO MMCifInfoChemComp {
   MMCifInfoChemComp(): chem_class(mol::ChemClass::UNKNOWN) { }

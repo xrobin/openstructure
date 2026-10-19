@@ -1543,8 +1543,9 @@ of the annotation available.
   .. warning::
 
     These definitions are not a compound library: they only contain atoms,
-    bonds and chem class, and the same ID doesn't mean the same molecule as in
-    the chemical component dictionary.
+    bonds and chem class (no one letter code, chem type, charges or leaving
+    atoms), and the same ID doesn't mean the same molecule as in the chemical
+    component dictionary.
 
   .. attribute:: id
 
