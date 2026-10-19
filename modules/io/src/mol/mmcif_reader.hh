@@ -58,6 +58,9 @@ namespace ost { namespace io {
 /// \li database_PDB_rev
 /// \li pdbx_entity_branch
 /// \li pdbx_entity_branch_link
+/// \li chem_comp
+/// \li chem_comp_atom
+/// \li chem_comp_bond
 class DLLEXPORT_OST_IO MMCifReader : public StarParser  {
 public:
   /// \brief create a MMCifReader
@@ -311,6 +314,25 @@ protected:
   ///
   /// \param columns data row
   void ParseEm3DReconstruction(const std::vector<StringRef>& columns);
+
+  /// \brief Fetch mmCIF chem_comp information
+  ///
+  /// \param columns data row
+  void ParseChemComp(const std::vector<StringRef>& columns);
+
+  /// \brief Fetch mmCIF chem_comp_atom information
+  ///
+  /// \param columns data row
+  void ParseChemCompAtom(const std::vector<StringRef>& columns);
+
+  /// \brief Fetch mmCIF chem_comp_bond information
+  ///
+  /// \param columns data row
+  void ParseChemCompBond(const std::vector<StringRef>& columns);
+
+  /// \brief Check the chem_comp* data of the current data block and add the
+  ///        consistent compound definitions to the info object
+  void AddChemCompsToInfo();
 
   /// \struct types of secondary structure
   typedef enum {
@@ -582,6 +604,27 @@ private:
     EM_RESOLUTION
   } Em3DReconstructionItems;
 
+  /// \enum items of the chem_comp category
+  typedef enum {
+    CC_ID,
+    CC_TYPE
+  } ChemCompItems;
+
+  /// \enum items of the chem_comp_atom category
+  typedef enum {
+    CCA_COMP_ID,
+    CCA_ATOM_ID,
+    CCA_TYPE_SYMBOL
+  } ChemCompAtomItems;
+
+  /// \enum items of the chem_comp_bond category
+  typedef enum {
+    CCB_COMP_ID,
+    CCB_ATOM_ID_1,
+    CCB_ATOM_ID_2,
+    CCB_VALUE_ORDER
+  } ChemCompBondItems;
+
   /// \enum categories of the mmcif format
   typedef enum {
     ATOM_SITE,
@@ -609,6 +652,9 @@ private:
     PDBX_ENTITY_BRANCH_LINK,
     ENTITY_POLY_SEQ,
     EM_3D_RECONSTRUCTION,
+    CHEM_COMP,
+    CHEM_COMP_ATOM,
+    CHEM_COMP_BOND,
     DONT_KNOW
   } MMCifCategory;
 
@@ -673,6 +719,17 @@ private:
   typedef std::map<String, std::vector<MMCifPdbxEntityBranchLink> >
     MMCifPdbxEntityBranchLinkMap;
 
+  /// \struct to keep chem_comp* rows of one compound while parsing (category
+  ///         order in the file is not fixed, compounds are built in OnEndData)
+  typedef struct {
+    int chem_comp_rows;     ///< number of chem_comp rows with this id
+    bool has_type;          ///< _chem_comp.type given (column present)
+    String type;            ///< _chem_comp.type
+    std::vector<MMCifInfoChemCompAtom> atoms; ///< _chem_comp_atom rows
+    std::vector<MMCifInfoChemCompBond> bonds; ///< _chem_comp_bond rows
+  } MMCifChemCompRows;
+  typedef std::map<String, MMCifChemCompRows> MMCifChemCompRowsMap;
+
   // members
   MMCifCategory category_;
   int category_counts_[DONT_KNOW+1]; ///< overall no. of atom_site loops
@@ -711,6 +768,11 @@ private:
   // for storing entity_poly_seq
   std::map<String, std::map<int, String> > entity_poly_seq_map_;
   std::map<String, std::vector<std::pair<int, String> > > entity_poly_seq_h_map_;
+  // for chem_comp* (compound definitions)
+  MMCifChemCompRowsMap chem_comp_rows_map_;
+  bool chem_comp_skipped_; ///< a chem_comp* category was unusable (fault
+                           /// tolerant): ignore all definitions of the block
+  bool chem_comp_without_id_; ///< chem_comp category without id column
   String data_block_name_;
 };
 

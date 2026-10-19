@@ -507,8 +507,11 @@ Details on the usage (output of ``ost compare-ligand-structures --help``):
 
   Ligands undergo gentle processing where hydrogens are removed. Connectivity
   is relevant for scoring. It is read directly from SDF input. If ligands are
-  extracted from mmCIF, connectivity is derived from the compound library. 
-  Ligands that are not present in the compound library are only supported in
+  extracted from mmCIF, connectivity is taken from the compound definition in the
+  mmCIF file (_chem_comp_atom/_chem_comp_bond), if any, otherwise from the
+  compound library. A definition is only used if it contains all atoms of the
+  ligand (same names and elements); a definition in the file that doesn't match
+  raises an error. Ligands that can't be connected this way are only supported in
   fault-tolerant mode, where a distance based heuristic is used to connect the
   ligand atoms. Be aware that this is unreliable and might cause issues with
   ligand matching

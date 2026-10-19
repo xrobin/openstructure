@@ -344,6 +344,201 @@ class TestMMCifInfo(unittest.TestCase):
     ent, seqres, info = io.LoadMMCIF(p, seqres=True, info=True,
                                      fault_tolerant=True)
 
+  # compound definitions (_chem_comp, _chem_comp_atom, _chem_comp_bond)
+  _CHEM_COMP = """
+loop_
+_chem_comp.id
+_chem_comp.type
+_chem_comp.name
+EOH non-polymer ETHANOL
+ALA 'L-peptide linking' ALANINE
+HOH non-polymer WATER
+LIG non-polymer ?
+"""
+  _ATOMS = """
+loop_
+_chem_comp_atom.comp_id
+_chem_comp_atom.atom_id
+_chem_comp_atom.type_symbol
+EOH C1 C
+EOH C2 C
+EOH O O
+HOH O O
+"""
+  _BONDS = """
+loop_
+_chem_comp_bond.comp_id
+_chem_comp_bond.atom_id_1
+_chem_comp_bond.atom_id_2
+_chem_comp_bond.value_order
+EOH C1 C2 sing
+EOH C2 O SING
+"""
+
+  def _Load(self, *blocks, fault_tolerant=False, name="test"):
+    prof = io.profiles.Get("DEFAULT")
+    prof.fault_tolerant = fault_tolerant
+    mmcif = "data_%s\n%s\n" % (name, "#\n".join(blocks))
+    ent, info, seqres = io.MMCifStrToEntity(mmcif, prof)
+    return info
+
+  def _AssertInvalid(self, *blocks):
+    """ Strict mode raises, fault tolerant mode drops the compound """
+    with self.assertRaises(Exception):
+      self._Load(*blocks)
+    info = self._Load(*blocks, fault_tolerant=True)
+    self.assertNotIn("EOH", info.GetChemCompIds())
+    return info
+
+  def test_mmcifinfo_chemcomp(self):
+    info = self._Load(self._CHEM_COMP, self._ATOMS, self._BONDS)
+    # compounds without atom rows (ALA, LIG) are not defined in the file
+    self.assertEqual(sorted(info.GetChemCompIds()), ["EOH", "HOH"])
+    eoh = info.GetChemComp("EOH")
+    self.assertEqual(eoh.id, "EOH")
+    self.assertEqual(eoh.type, "non-polymer")
+    self.assertEqual(eoh.chem_class, mol.NON_POLYMER)
+    self.assertEqual([(a.name, a.element) for a in eoh.atoms],
+                     [("C1", "C"), ("C2", "C"), ("O", "O")])
+    self.assertEqual([(b.aname1, b.aname2, b.bond_order)
+                      for b in eoh.bonds],
+                     [("C1", "C2", 1), ("C2", "O", 1)])
+    # water is water, whatever its type (as in the compound library)
+    self.assertEqual(info.GetChemComp("HOH").chem_class, mol.WATER)
+    with self.assertRaises(Exception):
+      info.GetChemComp("ALA")
+
+  def test_mmcifinfo_chemcomp_category_order(self):
+    # categories can come in any order
+    info = self._Load(self._BONDS, self._ATOMS, self._CHEM_COMP)
+    self.assertEqual(sorted(info.GetChemCompIds()), ["EOH", "HOH"])
+    self.assertEqual(len(info.GetChemComp("EOH").bonds), 2)
+
+  def test_mmcifinfo_chemcomp_single_row(self):
+    # non-looped categories, e.g. single-atom ions
+    info = self._Load("_chem_comp_atom.comp_id ZN\n"
+                      "_chem_comp_atom.atom_id ZN\n"
+                      "_chem_comp_atom.type_symbol ZN\n",
+                      "_chem_comp.id ZN\n"
+                      "_chem_comp.type NON-POLYMER\n")
+    zn = info.GetChemComp("ZN")
+    self.assertEqual(zn.chem_class, mol.NON_POLYMER)
+    self.assertEqual(len(zn.atoms), 1)
+    self.assertEqual(len(zn.bonds), 0)
+    # single bond, e.g. diatomic molecules
+    info = self._Load("_chem_comp.id OXY\n"
+                      "_chem_comp.type NON-POLYMER\n",
+                      "loop_\n_chem_comp_atom.comp_id\n"
+                      "_chem_comp_atom.atom_id\n_chem_comp_atom.type_symbol\n"
+                      "OXY O1 O\nOXY O2 O\n",
+                      "_chem_comp_bond.comp_id OXY\n"
+                      "_chem_comp_bond.atom_id_1 O1\n"
+                      "_chem_comp_bond.atom_id_2 O2\n"
+                      "_chem_comp_bond.value_order DOUB\n")
+    self.assertEqual([(b.aname1, b.aname2, b.bond_order)
+                      for b in info.GetChemComp("OXY").bonds],
+                     [("O1", "O2", 2)])
+
+  def test_mmcifinfo_chemcomp_no_definitions(self):
+    # predictor-style _chem_comp rows only, with undefined values and no
+    # type item: no compound, no error
+    info = self._Load("loop_\n_chem_comp.id\n_chem_comp.pdbx_smiles\n"
+                      "LIG_B CS(C)=O\nLIG_C ?\n")
+    self.assertEqual(len(info.GetChemCompIds()), 0)
+
+  def test_mmcifinfo_chemcomp_ids_case_sensitive(self):
+    info = self._Load(self._CHEM_COMP.replace("EOH", "eoh"),
+                      self._ATOMS.replace("EOH", "eoh"),
+                      self._BONDS.replace("EOH", "eoh"))
+    self.assertIn("eoh", info.GetChemCompIds())
+    self.assertNotIn("EOH", info.GetChemCompIds())
+
+  def test_mmcifinfo_chemcomp_type(self):
+    # case-insensitive, legacy spellings and "?" are known
+    for chem_type, chem_class in [("D-SACCHARIDE", mol.D_SACCHARIDE),
+                                  ("l-peptide-linking",
+                                   mol.L_PEPTIDE_LINKING),
+                                  ("?", mol.UNKNOWN),
+                                  ("other", mol.UNKNOWN)]:
+      info = self._Load(self._CHEM_COMP.replace("EOH non-polymer",
+                                                "EOH '%s'" % chem_type),
+                        self._ATOMS, self._BONDS)
+      self.assertEqual(info.GetChemComp("EOH").chem_class, chem_class)
+    for chem_type in [".", "ligand"]:
+      self._AssertInvalid(self._CHEM_COMP.replace("EOH non-polymer",
+                                                  "EOH %s" % chem_type),
+                          self._ATOMS, self._BONDS)
+
+  def test_mmcifinfo_chemcomp_value_order(self):
+    def orders(value_orders, **kwargs):
+      bonds = "loop_\n_chem_comp_bond.comp_id\n_chem_comp_bond.atom_id_1\n" \
+              "_chem_comp_bond.atom_id_2\n_chem_comp_bond.value_order\n" \
+              "EOH C1 C2 %s\nEOH C2 O %s\n" % value_orders
+      info = self._Load(self._CHEM_COMP, self._ATOMS, bonds, **kwargs)
+      return [b.bond_order for b in info.GetChemComp("EOH").bonds]
+    self.assertEqual(orders(("doub", "TRIP")), [2, 3])
+    self.assertEqual(orders(("?", ".")), [1, 1])
+    # valid but not representable
+    self.assertEqual(orders(("arom", "quad")), [1, 1])
+    # not in the enumeration
+    with self.assertRaises(Exception):
+      orders(("double", "sing"))
+    self.assertEqual(orders(("double", "sing"), fault_tolerant=True), [1, 1])
+    # no value_order item: defaults to single
+    info = self._Load(self._CHEM_COMP, self._ATOMS,
+                      "\n".join(l for l in self._BONDS.splitlines()
+                                if "value_order" not in l).replace(" sing", "")
+                      .replace(" SING", ""))
+    self.assertEqual([b.bond_order for b in info.GetChemComp("EOH").bonds],
+                     [1, 1])
+
+  def test_mmcifinfo_chemcomp_invalid(self):
+    # mandatory item missing
+    info = self._AssertInvalid(self._CHEM_COMP,
+                               self._ATOMS.replace("_chem_comp_atom.type_symbol\n",
+                                                   "").replace(" C\n", "\n")
+                               .replace(" O\n", "\n"),
+                               self._BONDS)
+    # ... invalidates all definitions of the data block
+    self.assertEqual(len(info.GetChemCompIds()), 0)
+    self._AssertInvalid("loop_\n_chem_comp.id\nEOH\n", self._ATOMS,
+                        self._BONDS)
+    # undefined element
+    self._AssertInvalid(self._CHEM_COMP, self._ATOMS.replace("EOH O O",
+                                                             "EOH O ?"),
+                        self._BONDS)
+    # duplicate atom
+    self._AssertInvalid(self._CHEM_COMP, self._ATOMS.replace("EOH O O",
+                                                             "EOH C1 O"),
+                        self._BONDS)
+    # more than one atom, no bonds
+    info = self._AssertInvalid(self._CHEM_COMP, self._ATOMS)
+    # ... only drops that compound
+    self.assertIn("HOH", info.GetChemCompIds())
+    # bond to an atom that isn't defined
+    self._AssertInvalid(self._CHEM_COMP, self._ATOMS,
+                        self._BONDS.replace("EOH C2 O", "EOH C2 O1"))
+    # bonds without atoms
+    self._AssertInvalid(self._CHEM_COMP,
+                        self._ATOMS.replace("EOH", "XXX"), self._BONDS)
+    # atoms and bonds without _chem_comp row
+    self._AssertInvalid(self._CHEM_COMP.replace("EOH", "XXX"),
+                        self._ATOMS, self._BONDS)
+    # more than one _chem_comp row
+    self._AssertInvalid(self._CHEM_COMP.replace("HOH non-polymer",
+                                                "EOH non-polymer"),
+                        self._ATOMS, self._BONDS)
+
+  def test_mmcifinfo_chemcomp_data_blocks(self):
+    # like all other info, compounds describe a single data block
+    prof = io.profiles.Get("DEFAULT")
+    prof.fault_tolerant = True
+    mmcif = "data_first\n%s\n#\n%s\n#\n%s\ndata_second\n%s\n#\n%s\n" % (
+              self._CHEM_COMP, self._ATOMS, self._BONDS,
+              self._CHEM_COMP, self._ATOMS.replace("EOH", "XXX"))
+    ent, info, seqres = io.MMCifStrToEntity(mmcif, prof)
+    self.assertEqual(sorted(info.GetChemCompIds()), ["HOH"])
+
 
 if __name__== '__main__':
   from ost import testutils

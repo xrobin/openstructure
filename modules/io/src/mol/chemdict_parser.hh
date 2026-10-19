@@ -72,8 +72,20 @@ public:
   {
     return imported_count_;
   }
+
+  /// \brief Translate a _chem_comp.type value to a chem class
+  ///
+  /// Case-insensitive. Knows all values of the PDBx/mmCIF enumeration and
+  /// some legacy spellings found in the PDB; "?" and "OTHER" give
+  /// \ref mol::ChemClass::UNKNOWN.
+  ///
+  /// \param type value of _chem_comp.type
+  /// \param chem_class set to the chem class if \p type is known
+  /// \return false if \p type is unknown (\p chem_class is left untouched)
+  static bool ChemCompTypeToChemClass(const String& type,
+                                      mol::ChemClass& chem_class);
 private:
-  void InitTypeMap();  
+  static void InitTypeMap();
   void InitPDBXTypeMap();
   bool IsNameReserved(const String& data_name);
   conop::CompoundLibPtr                   lib_;

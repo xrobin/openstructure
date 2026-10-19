@@ -966,6 +966,71 @@ typedef struct {
 } MMCifEntityDesc;
 typedef std::map<String, MMCifEntityDesc> MMCifEntityDescMap;
 
+/// \brief Atom of a chemical component defined in the file (_chem_comp_atom)
+struct DLLEXPORT_OST_IO MMCifInfoChemCompAtom {
+  MMCifInfoChemCompAtom(const String& name, const String& element):
+    name(name), element(element) { }
+
+  bool operator==(const MMCifInfoChemCompAtom& rhs) const {
+    return name == rhs.name && element == rhs.element;
+  }
+
+  bool operator!=(const MMCifInfoChemCompAtom& rhs) const {
+    return !((*this) == rhs);
+  }
+
+  String name;    ///< _chem_comp_atom.atom_id
+  String element; ///< _chem_comp_atom.type_symbol
+};
+
+/// \brief Bond of a chemical component defined in the file (_chem_comp_bond)
+struct DLLEXPORT_OST_IO MMCifInfoChemCompBond {
+  MMCifInfoChemCompBond(const String& aname1, const String& aname2,
+                        unsigned char bond_order):
+    aname1(aname1), aname2(aname2), bond_order(bond_order) { }
+
+  bool operator==(const MMCifInfoChemCompBond& rhs) const {
+    return aname1 == rhs.aname1 && aname2 == rhs.aname2 &&
+           bond_order == rhs.bond_order;
+  }
+
+  bool operator!=(const MMCifInfoChemCompBond& rhs) const {
+    return !((*this) == rhs);
+  }
+
+  String aname1;            ///< _chem_comp_bond.atom_id_1
+  String aname2;            ///< _chem_comp_bond.atom_id_2
+  unsigned char bond_order; ///< 1, 2 or 3 ("arom" etc. give 1)
+};
+
+/// \brief Chemical component defined in the file (_chem_comp with
+///        _chem_comp_atom and _chem_comp_bond rows)
+///
+/// Holds the atoms (names and elements, hydrogens included), the bonds with
+/// their orders and the chem class of the component. Only components the file
+/// actually defines (at least one _chem_comp_atom row) are stored, and the
+/// reader guarantees they are consistent: mandatory items present, valid
+/// _chem_comp.type (any value of the enumeration, some legacy spellings, "?"),
+/// no duplicate atom names, every bond between atoms of the component, at least
+/// one bond if there is more than one atom. Inconsistent definitions raise an
+/// error, or are dropped with a warning in fault tolerant mode.
+///
+/// \warning These definitions are not a compound library: they only contain
+/// atoms, bonds and chem class, and the same id doesn't mean the same molecule
+/// as in the chemical component dictionary (predictors reuse its ids for other
+/// molecules, e.g. "LIG").
+struct DLLEXPORT_OST_IO MMCifInfoChemComp {
+  MMCifInfoChemComp(): chem_class(mol::ChemClass::UNKNOWN) { }
+
+  String id;                                ///< _chem_comp.id
+  String type;                              ///< _chem_comp.type
+  mol::ChemClass chem_class;                ///< chem class from type
+                                            /// (unknown for "other", "?")
+  std::vector<MMCifInfoChemCompAtom> atoms; ///< in file order
+  std::vector<MMCifInfoChemCompBond> bonds; ///< in file order
+};
+typedef std::map<String, MMCifInfoChemComp> MMCifInfoChemCompMap;
+
 
 /// \brief container class for additional information from MMCif files
 /// 
@@ -980,6 +1045,7 @@ typedef std::map<String, MMCifEntityDesc> MMCifEntityDescMap;
 /// \li structure information
 /// \li resolution
 /// \li method
+/// \li chemical component definitions
 class DLLEXPORT_OST_IO MMCifInfo {
 public:
   /// \brief Create an info object.
@@ -1224,6 +1290,20 @@ public:
 
   std::vector<String> GetEntityIdsOfType(const String& type) const;
 
+  /// \brief Add a chemical component defined in the file
+  ///
+  /// \param chem_comp component, must not exist yet
+  void AddChemComp(const MMCifInfoChemComp& chem_comp);
+
+  /// \brief Get a chemical component defined in the file
+  ///
+  /// Throws if the file doesn't define \p id, see \ref GetChemCompIds.
+  /// See \ref MMCifInfoChemComp for its contents and caveats.
+  const MMCifInfoChemComp& GetChemComp(const String& id) const;
+
+  /// \brief Get ids of all chemical components defined in the file
+  std::vector<String> GetChemCompIds() const;
+
 //protected:
 
 private:
@@ -1246,6 +1326,7 @@ private:
   std::map<String, String> pdb_2_cif_chain_id_;
   std::map<String, String> cif_2_entity_id_;
   std::map<String, std::vector<MMCifInfoEntityBranchLink> > entity_branches_;
+  MMCifInfoChemCompMap chem_comps_;
 };
 
 DLLEXPORT_OST_IO std::ostream& operator<<(std::ostream& os, 

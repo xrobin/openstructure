@@ -524,6 +524,38 @@ void export_mmcif_io()
    .add_property("hetero_ids", &MMCifEntityDesc::hetero_ids)
   ;
 
+  class_<MMCifInfoChemCompAtom>("MMCifInfoChemCompAtom",
+                                init<const String&, const String&>())
+    .add_property("name", &MMCifInfoChemCompAtom::name)
+    .add_property("element", &MMCifInfoChemCompAtom::element)
+  ;
+
+  class_<std::vector<MMCifInfoChemCompAtom> >("MMCifInfoChemCompAtomList",
+                                              init<>())
+    .def(vector_indexing_suite<std::vector<MMCifInfoChemCompAtom> >())
+  ;
+
+  class_<MMCifInfoChemCompBond>("MMCifInfoChemCompBond",
+                                init<const String&, const String&,
+                                     unsigned char>())
+    .add_property("aname1", &MMCifInfoChemCompBond::aname1)
+    .add_property("aname2", &MMCifInfoChemCompBond::aname2)
+    .add_property("bond_order", &MMCifInfoChemCompBond::bond_order)
+  ;
+
+  class_<std::vector<MMCifInfoChemCompBond> >("MMCifInfoChemCompBondList",
+                                              init<>())
+    .def(vector_indexing_suite<std::vector<MMCifInfoChemCompBond> >())
+  ;
+
+  class_<MMCifInfoChemComp>("MMCifInfoChemComp", init<>())
+    .add_property("id", &MMCifInfoChemComp::id)
+    .add_property("type", &MMCifInfoChemComp::type)
+    .add_property("chem_class", &MMCifInfoChemComp::chem_class)
+    .add_property("atoms", &MMCifInfoChemComp::atoms)
+    .add_property("bonds", &MMCifInfoChemComp::bonds)
+  ;
+
   class_<MMCifInfo>("MMCifInfo", init<>())
     .def("AddCitation", &MMCifInfo::AddCitation)
     .def("GetCitations", make_function(&MMCifInfo::GetCitations,
@@ -571,6 +603,10 @@ void export_mmcif_io()
     .def("GetEntityDesc", &MMCifInfo::GetEntityDesc, return_value_policy<copy_const_reference>())
     .def("GetEntityIds", &MMCifInfo::GetEntityIds)
     .def("GetEntityIdsOfType", &MMCifInfo::GetEntityIdsOfType)
+    .def("AddChemComp", &MMCifInfo::AddChemComp)
+    .def("GetChemComp", &MMCifInfo::GetChemComp,
+         return_value_policy<copy_const_reference>())
+    .def("GetChemCompIds", &MMCifInfo::GetChemCompIds)
     .add_property("citations", make_function(&MMCifInfo::GetCitations,
                                    return_value_policy<copy_const_reference>()))
     .add_property("biounits", make_function(&MMCifInfo::GetBioUnits,

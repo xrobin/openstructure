@@ -45,6 +45,20 @@ Conop Functions
   :param atom_b: Atom to be checked.
   :type atom_b:  :class:`~ost.mol.AtomHandle`
 
+.. function:: DistanceBasedConnect(atom, connect_hetatm=True)
+
+  Connects *atom* to all atoms within :func:`bonding distance
+  <IsBondFeasible>` that belong to the same residue or to the previous or next
+  residue in the same chain. All bonds get bond order 1. This is the heuristic
+  the :class:`processors <Processor>` apply to residues not found in the
+  compound library.
+
+  :param atom: Atom to connect.
+  :type atom:  :class:`~ost.mol.AtomHandle`
+  :param connect_hetatm: If False, no bond is formed between two HETATM atoms
+                         (see :attr:`Processor.connect_hetatm`).
+  :type connect_hetatm:  :class:`bool`
+
 .. function:: GetUnknownAtomsOfResidue(residue, compound, strict_hydrogens=False)
 
   Returns the list of atoms present in *residue* that are not part of the 

@@ -3,6 +3,16 @@ Changes in develop
 
  * Replace molecular viewer for jupyter notebooks in Singularity container. Use
    py3Dmol instead of nglview.
+ * The mmCIF reader stores chemical component definitions (_chem_comp,
+   _chem_comp_atom, _chem_comp_bond) in MMCifInfo. Inconsistent definitions
+   raise an error unless in fault tolerant mode.
+ * MMCIFPrep (scoring actions) takes ligand connectivity from compound
+   definitions in the mmCIF file if available, otherwise from the compound
+   library. Ligands are no longer processed (no chem type, one letter code)
+   and must match their definition, otherwise an error is raised unless in
+   fault tolerant mode. Warnings of the mmCIF reader are no longer silenced.
+ * Removed scoring_base.CleanHydrogens, only used by MMCIFPrep and PDBPrep.
+ * Export conop.DistanceBasedConnect to Python.
  * Minor bugfixes
 
 

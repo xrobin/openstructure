@@ -12,7 +12,8 @@ the legacy PDB format (:class:`MMCifInfo`,
 :class:`MMCifInfoBioUnit`, :class:`MMCifInfoStructDetails`,
 :class:`MMCifInfoObsolete`, :class:`MMCifInfoStructRef`,
 :class:`MMCifInfoStructRefSeq`, :class:`MMCifInfoStructRefSeqDif`,
-:class:`MMCifInfoRevisions`, :class:`MMCifInfoEntityBranchLink`).
+:class:`MMCifInfoRevisions`, :class:`MMCifInfoEntityBranchLink`,
+:class:`MMCifInfoChemComp`).
 
 Reading mmCIF files
 --------------------------------------------------------------------------------
@@ -55,6 +56,8 @@ The following categories of a mmCIF file are considered by the reader:
   :class:`MMCifInfoEntityBranchLink`, a list of links is available by
   :meth:`~MMCifInfo.GetEntityBranchLinks` and
   :meth:`~MMCifInfo.GetEntityBranchByChain`
+* ``chem_comp``, ``chem_comp_atom`` and ``chem_comp_bond`` used for
+  :class:`MMCifInfoChemComp`, available by :meth:`~MMCifInfo.GetChemComp`
 
 Notes:
 
@@ -448,6 +451,30 @@ of the annotation available.
 
     :param entity_id: ID of entity
     :type entity_id: :class:`str`
+
+  .. method:: AddChemComp(chem_comp)
+
+    Add a chemical component definition. Raises an error if a component with
+    the same ID is already present.
+
+    :param chem_comp: Chemical component
+    :type chem_comp: :class:`MMCifInfoChemComp`
+
+  .. method:: GetChemComp(id)
+
+    Get the definition of chemical component *id* from the file, see
+    :class:`MMCifInfoChemComp`. Raises an error if the file doesn't define it
+    (see :meth:`GetChemCompIds`). IDs are case sensitive.
+
+    :param id: ID of chemical component (``_chem_comp.id``)
+    :type id: :class:`str`
+    :returns: :class:`MMCifInfoChemComp`
+
+  .. method:: GetChemCompIds()
+
+    Get the IDs of all chemical components defined in the file.
+
+    :returns: :class:`list` of :class:`str`
 
 .. class:: MMCifInfoCitation
 
@@ -1495,6 +1522,103 @@ of the annotation available.
     in :attr:`mon_ids`. The remnant is listed here.
     This list specifies the monomer ids for the respective locations in
     :attr:`hetero_num`.
+
+.. class:: MMCifInfoChemComp
+
+  Chemical component defined in the mmCIF file: a ``_chem_comp`` row with its
+  ``_chem_comp_atom`` and ``_chem_comp_bond`` rows. Holds the atoms (names and
+  elements, hydrogens included), the bonds with their orders and the chem class
+  of the component.
+
+  Only components with at least one ``_chem_comp_atom`` row are read, and the
+  reader guarantees they are consistent: mandatory items present (``_chem_comp``:
+  ``id``, ``type``; ``_chem_comp_atom``: ``comp_id``, ``atom_id``,
+  ``type_symbol``; ``_chem_comp_bond``: ``comp_id``, ``atom_id_1``,
+  ``atom_id_2``), valid :attr:`type`, no duplicate atom names, every bond
+  between atoms of the component, at least one bond if there is more than one
+  atom, no ``_chem_comp_atom``/``_chem_comp_bond`` rows without ``_chem_comp``
+  row. An inconsistent definition raises an error, or is dropped with a warning
+  in fault tolerant mode.
+
+  .. warning::
+
+    These definitions are not a compound library: they only contain atoms,
+    bonds and chem class, and the same ID doesn't mean the same molecule as in
+    the chemical component dictionary.
+
+  .. attribute:: id
+
+    ``_chem_comp.id``
+
+    :type: :class:`str`
+
+  .. attribute:: type
+
+    ``_chem_comp.type``: any value of the dictionary enumeration
+    (case-insensitive), some legacy spellings found in the PDB, or "?"
+
+    :type: :class:`str`
+
+  .. attribute:: chem_class
+
+    Chem class derived from :attr:`type`: unknown for "other" and "?", water
+    for HOH and DOD (as in the compound library)
+
+    :type: :class:`ost.mol.ChemClass`
+
+  .. attribute:: atoms
+
+    Atoms in file order
+
+    :type: :class:`list` of :class:`MMCifInfoChemCompAtom`
+
+  .. attribute:: bonds
+
+    Bonds in file order
+
+    :type: :class:`list` of :class:`MMCifInfoChemCompBond`
+
+.. class:: MMCifInfoChemCompAtom
+
+  Atom of a :class:`MMCifInfoChemComp`
+
+  .. attribute:: name
+
+    ``_chem_comp_atom.atom_id``
+
+    :type: :class:`str`
+
+  .. attribute:: element
+
+    ``_chem_comp_atom.type_symbol``
+
+    :type: :class:`str`
+
+.. class:: MMCifInfoChemCompBond
+
+  Bond of a :class:`MMCifInfoChemComp`
+
+  .. attribute:: aname1
+
+    ``_chem_comp_bond.atom_id_1``
+
+    :type: :class:`str`
+
+  .. attribute:: aname2
+
+    ``_chem_comp_bond.atom_id_2``
+
+    :type: :class:`str`
+
+  .. attribute:: bond_order
+
+    1, 2 or 3 for ``_chem_comp_bond.value_order`` "sing", "doub" or "trip"
+    (case-insensitive, single if not given). The other values of the
+    enumeration ("arom", "delo", "pi", "poly", "quad") give 1 with a warning;
+    values outside the enumeration raise an error (1 with a warning in fault
+    tolerant mode).
+
+    :type: :class:`int`
 
 
 Writing mmCIF files

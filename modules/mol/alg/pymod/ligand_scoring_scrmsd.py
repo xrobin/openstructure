@@ -304,7 +304,7 @@ class SCRMSDScorer(ligand_scoring_base.LigandScorer):
                             msg += str(target_ligand.qualified_name)
                             LogWarning(msg)
                             ignored_residue_hashes.add(h)
-                        elif ref_res.chem_type == mol.ChemType.WATERS:
+                        elif ref_res.chem_class == mol.WATER:
                             pass # That's ok, no need to warn
                         else:
                             msg = f"Ignoring residue {ref_res.qualified_name} "

@@ -305,6 +305,32 @@ std::vector<String> MMCifInfo::GetEntityIdsOfType(const String& entity_type) con
   return vec;
 }
 
+void MMCifInfo::AddChemComp(const MMCifInfoChemComp& chem_comp)
+{
+  if(chem_comps_.find(chem_comp.id) != chem_comps_.end()) {
+    throw IOException("ChemComp for id \""+chem_comp.id+"\" already set");
+  }
+  chem_comps_[chem_comp.id] = chem_comp;
+}
+
+const MMCifInfoChemComp& MMCifInfo::GetChemComp(const String& id) const
+{
+  MMCifInfoChemCompMap::const_iterator it = chem_comps_.find(id);
+  if(it == chem_comps_.end()) {
+    throw IOException("No ChemComp for id \""+id+"\"");
+  }
+  return it->second;
+}
+
+std::vector<String> MMCifInfo::GetChemCompIds() const
+{
+  std::vector<String> vec;
+  for(auto it: chem_comps_) {
+    vec.push_back(it.first);
+  }
+  return vec;
+}
+
 std::ostream& operator<<(std::ostream& os, const MMCifInfoEntityBranchLink& eb)
 {
   os << "<MMCifInfoEntityBranchLink rnum1:" << eb.rnum1 <<

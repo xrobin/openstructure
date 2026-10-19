@@ -5,49 +5,79 @@ from ost import mol
 from ost import seq
 
 
-def CleanHydrogens(ent, clib):
-    """ Scoring helper - Returns copy of *ent* without hydrogens
+def _RemoveHydrogens(ent):
+    """ Returns copy of *ent* without hydrogens
 
-    Non-standard hydrogen naming can cause trouble in residue property
-    assignment which is done by the :class:`ost.conop.RuleBasedProcessor` when
-    loading. In fact, residue property assignment is not done for every residue
-    that has unknown atoms according to the chemical component dictionary. This
-    function therefore re-processes the entity after removing hydrogens.
-
-    :param ent: Entity to clean
-    :type ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
-    :param clib: Compound library to perform re-processing after hydrogen
-                 removal.
-    :type clib: :class:`ost.conop.CompoundLib`
-    :returns: Cleaned and re-processed ent
+    The copy is not processed. Non-standard hydrogen naming can cause trouble
+    in residue property assignment by the :class:`ost.conop.RuleBasedProcessor`:
+    it is not done for residues with unknown atoms according to the chemical
+    component dictionary. Entities processed before hydrogen removal (e.g. by
+    :func:`ost.io.LoadPDB`) must therefore be processed again.
     """
-    cleaned_ent = mol.CreateEntityFromView(ent.Select(
-        "ele != H and ele != D"), include_exlusive_atoms=False)
-    # process again to set missing residue properties due to non standard
-    # hydrogens
-    processor = conop.RuleBasedProcessor(clib)
-    processor.Process(cleaned_ent)
-    return cleaned_ent
+    return mol.CreateEntityFromView(ent.Select("ele != H and ele != D"),
+                                    include_exlusive_atoms=False)
 
 
 def MMCIFPrep(mmcif_path, biounit=None, extract_nonpoly=False,
               fault_tolerant=False, extract_seqres_mapping=False):
     """ Scoring helper - Prepares input from mmCIF
 
-    Only performs gentle cleanup of hydrogen atoms. Further cleanup is delegated
-    to scoring classes.
+    The structure in *mmcif_path* (or the specified *biounit*) is split based
+    on _entity.type:
+
+    * Entities of type "polymer" form poly_ent.
+    * Entities of type "non-polymer" are ligands. Each of their chains becomes
+      an entity of its own in non_poly_entities and must contain exactly one
+      residue.
+    * Entities of any other type (e.g. "water", "branched") are ignored.
+
+    If _entity.type is not defined for every chain, an error is raised. In
+    *fault_tolerant* mode, poly_ent falls back to a selection of peptide and
+    nucleotide residues as defined in the chemical component dictionary
+    instead, with a warning. Extracting non_poly_entities always requires
+    _entity.type and raises an error otherwise.
+
+    Hydrogens are removed. poly_ent is then processed with a
+    :class:`ost.conop.RuleBasedProcessor` (connectivity, residue properties).
+    Ligands are not processed: only their bonds and chem class are set, from
+    (in this order):
+
+    1. the compound definition in *mmcif_path* (_chem_comp, _chem_comp_atom,
+       _chem_comp_bond), if any - see :meth:`ost.io.MMCifInfo.GetChemComp`,
+    2. the compound library (:func:`ost.conop.GetDefaultLib`),
+    3. a distance-based heuristic (:func:`ost.conop.DistanceBasedConnect`), only
+       in *fault_tolerant* mode, otherwise an error is raised.
+
+    A definition is only used if it contains every atom of the ligand (by name,
+    with the same element; atoms of the definition missing in the ligand, e.g.
+    hydrogens, are fine). As in the :class:`~ost.conop.RuleBasedProcessor`,
+    atoms are also matched by alternative name in the compound library (e.g.
+    atoms renamed in the chemical component dictionary). A definition in the
+    file that doesn't match its ligand raises an error (ignored with a warning
+    in *fault_tolerant* mode, falling back to the compound library).
+
+    No further cleanup is performed, it is delegated to scoring classes.
+
+    .. warning::
+
+      Ligand entities are not designed to be used outside of scoring. They are
+      not processed with a :class:`ost.conop.RuleBasedProcessor`: only their
+      bonds and chem class are set.
+      Unlike after processing, their atoms are not reordered, their elements
+      are neither fixed from the compound library nor guessed if invalid, chem
+      type and one letter code are not set, torsions are not assigned, atoms
+      missing in their definition are not tolerated (no unknown atom handling)
+      and no processor diagnostics are logged.
+
+    A compound library is required (:func:`ost.conop.GetDefaultLib`).
 
     Depending on input flags, the following outputs can be retrieved:
 
     * poly_ent (:class:`ost.mol.EntityHandle`): An OpenStructure entity with only
-      polymer chains. This is based on _entity.type extracted from *mmcif_path*.
-      If _entity.type is not defined for every chain, a warning is logged
-      and the returned poly_ent is a selection for peptide and nucleotide
-      residues as defined in the chemical component dictionary.
+      polymer chains (see above).
     * non_poly_entities (:class:`list` of :class:`ost.mol.EntityHandle`):
-      OpenStructure entities representing all non-polymer (ligand) entities.
-      This is based on _entity.type extracted from *mmcif_path*. If _entity.type
-      is not defined for every chain, an error is raised.
+      OpenStructure entities representing all non-polymer (ligand) entities
+      (see above).
     * seqres (:class:`ost.seq.SequenceList`): Seqres sequences with entity id
       as sequence names and the respective canonical seqres as sequence. Set to
       None and triggers a warning if information is missing in *mmcif_path*.
@@ -63,7 +93,9 @@ def MMCIFPrep(mmcif_path, biounit=None, extract_nonpoly=False,
     :type biounit: :class:`str`
     :param extract_nonpoly: Controls return value
     :type extract_nonpoly: :class:`bool`
-    :param fault_tolerant: Passed as parameter to :func:`ost.io.LoadMMCIF`
+    :param fault_tolerant: Sets :attr:`ost.io.IOProfile.fault_tolerant` for
+                           reading *mmcif_path* and controls how inconsistent
+                           ligands are handled (see above)
     :type fault_tolerant: :class:`bool`
     :param extract_seqres_mapping: Controls return value
     :type extract_seqres_mapping: :class:`bool`
@@ -87,14 +119,18 @@ def MMCIFPrep(mmcif_path, biounit=None, extract_nonpoly=False,
     seqres = None
     trg_seqres_mapping = None
 
-    # increase loglevel, as we would pollute the info log with weird stuff
-    ost.PushVerbosityLevel(ost.LogLevel.Error)
-    mmcif_entity, mmcif_seqres, mmcif_info = io.LoadMMCIF(mmcif_path, seqres=True, info=True,
-                                                          fault_tolerant=fault_tolerant)
-    # restore old loglevel and return
-    ost.PopVerbosityLevel()
-
-    mmcif_entity = CleanHydrogens(mmcif_entity, clib)
+    # read without processing (unlike io.LoadMMCIF): polymers are processed
+    # below once hydrogens are removed, ligands are not processed at all
+    # (_ConnectLigand)
+    profile = io.profiles.Get("DEFAULT")
+    profile.fault_tolerant = fault_tolerant
+    mmcif_entity = mol.CreateEntity()
+    reader = io.MMCifReader(mmcif_path, mmcif_entity, profile)
+    reader.Parse()
+    mmcif_seqres = reader.seqres
+    mmcif_info = reader.info
+    mmcif_entity = _RemoveHydrogens(mmcif_entity)
+    processor = conop.RuleBasedProcessor(clib)
 
     # construct biounit if necessary
     if biounit is not None:
@@ -145,6 +181,8 @@ def MMCIFPrep(mmcif_path, biounit=None, extract_nonpoly=False,
         msg += f"tolerant mode)."
         ost.LogWarning(msg)
 
+        # selection relies on chem classes assigned by the processor
+        processor.Process(mmcif_entity)
         poly_sel = mmcif_entity.Select("peptide=true or nucleotide=true")
         poly_ent = mol.CreateEntityFromView(poly_sel, True)
     else:
@@ -166,6 +204,7 @@ def MMCIFPrep(mmcif_path, biounit=None, extract_nonpoly=False,
                 ch.SetIntProp("poly", 1)
         poly_sel = mmcif_entity.Select("gcpoly:0=1")
         poly_ent = mol.CreateEntityFromView(poly_sel, True)
+        processor.Process(poly_ent)
 
     if extract_nonpoly:
         if len(missing_entity_types) > 0:
@@ -202,22 +241,10 @@ def MMCIFPrep(mmcif_path, biounit=None, extract_nonpoly=False,
                                    f"{mmcif_path} to contain exactly 1 "
                                    f"residue. Got {view.GetResidueCount()} "
                                    f"in chain {view.chains[0].name}")
-            compound = clib.FindCompound(view.residues[0].name)
-            if compound is None:
-                error_msg = f"\"{view.residues[0].name}\" is not available in " \
-                            f"the compound library."
-                if fault_tolerant:
-                    error_msg += f"A distance-based heuristic was used to " \
-                                 f"connect the ligand atoms (fault tolerant " \
-                                 f"mode)."
-                    ost.LogWarning(error_msg)
-                else:
-                    error_msg += f"Use fault tolerant mode to ignore this " \
-                                 f"error and use a distance based heuristic " \
-                                 f"to connect the ligand atoms."
-                    raise RuntimeError(error_msg)
-
-            non_poly_entities.append(mol.CreateEntityFromView(view, True))
+            lig_ent = mol.CreateEntityFromView(view, True)
+            _ConnectLigand(lig_ent, mmcif_info, clib, mmcif_path,
+                           fault_tolerant)
+            non_poly_entities.append(lig_ent)
 
     if extract_seqres_mapping:
         # mmcif seqres is a list of sequences that relates to
@@ -293,6 +320,133 @@ def MMCIFPrep(mmcif_path, biounit=None, extract_nonpoly=False,
         return poly_ent
 
 
+def _MatchLigandAtoms(res, atoms):
+    """ Matches the atoms of *res* to the atoms of a compound definition
+
+    Like :class:`~ost.conop.RuleBasedProcessor`, atoms are matched by name, or
+    by alternative name if no atom of the definition has that name.
+
+    :param atoms: (name, alternative name, element) of each atom of the
+                  definition
+    :returns: (*matches*, *mismatches*): name of the atom of *res* matched to
+              each atom of the definition (:class:`dict` with definition atom
+              names as keys) and :class:`list` of :class:`str` describing each
+              atom of *res* that couldn't be matched
+    """
+    by_name = dict()
+    by_alt_name = dict()
+    for name, alt_name, element in atoms:
+        by_name[name] = (name, element)
+        if alt_name:
+            # first atom with that alternative name, like the processor
+            by_alt_name.setdefault(alt_name, (name, element))
+    matches = dict()
+    mismatches = list()
+    for a in res.atoms:
+        if a.name in by_name:
+            name, element = by_name[a.name]
+        elif a.name in by_alt_name:
+            name, element = by_alt_name[a.name]
+        else:
+            mismatches.append(f"{a.name} (not defined)")
+            continue
+        if a.element.upper() != element.upper():
+            mismatches.append(f"{a.name} (element {a.element}, defined as "
+                              f"{element})")
+        elif name in matches:
+            mismatches.append(f"{a.name} (defined as {name}, like "
+                              f"{matches[name]})")
+        else:
+            matches[name] = a.name
+    return matches, mismatches
+
+
+def _ConnectLigandAtoms(lig_ent, matches, bonds):
+    """ Connects atoms of the single residue of *lig_ent*
+
+    :param matches: First return value of :func:`_MatchLigandAtoms`
+    :param bonds: (atom name, atom name, bond order) of each bond of the
+                  definition
+    """
+    res = lig_ent.residues[0]
+    ed = lig_ent.EditXCS(mol.BUFFERED_EDIT)
+    for name_1, name_2, bond_order in bonds:
+        # atoms of the definition can be absent (hydrogens, unresolved atoms)
+        if name_1 in matches and name_2 in matches:
+            ed.Connect(res.FindAtom(matches[name_1]),
+                       res.FindAtom(matches[name_2]), bond_order)
+
+
+def _ConnectLigand(lig_ent, mmcif_info, clib, mmcif_path, fault_tolerant):
+    """ Sets bonds and chem class of the single residue of *lig_ent*
+
+    Uses the compound definition in the mmCIF file, the compound library or a
+    distance-based heuristic (fault tolerant mode), see :func:`MMCIFPrep`.
+    *lig_ent* must not have been processed.
+    """
+    res = lig_ent.residues[0]
+
+    # 1) compound defined in the mmCIF file. Its consistency is guaranteed by
+    #    the reader, only its match with the ligand atoms is checked here.
+    if res.name in mmcif_info.GetChemCompIds():
+        chem_comp = mmcif_info.GetChemComp(res.name)
+        matches, mismatches = _MatchLigandAtoms(
+            res, [(a.name, None, a.element) for a in chem_comp.atoms])
+        if len(mismatches) == 0:
+            _ConnectLigandAtoms(lig_ent, matches,
+                                [(b.aname1, b.aname2, b.bond_order)
+                                 for b in chem_comp.bonds])
+            res.SetChemClass(chem_comp.chem_class)
+            ost.LogInfo(f"Ligand {res.qualified_name} connected using the "
+                        f"compound definition in {mmcif_path}.")
+            return
+        msg = f"Compound definition of \"{res.name}\" in {mmcif_path} "
+        msg += f"doesn't match the atoms of ligand {res.qualified_name}: "
+        msg += f"{', '.join(mismatches)}. "
+        if not fault_tolerant:
+            msg += f"Use fault tolerant mode to ignore the definition."
+            raise RuntimeError(msg)
+        msg += f"Ignoring the definition (fault tolerant mode)."
+        ost.LogWarning(msg)
+
+    # 2) compound library
+    compound = clib.FindCompound(res.name)
+    if compound is not None:
+        atom_names = {a.ordinal: a.name for a in compound.atom_specs}
+        matches, mismatches = _MatchLigandAtoms(
+            res, [(a.name, a.alt_name, a.element)
+                  for a in compound.atom_specs])
+        if len(mismatches) == 0:
+            _ConnectLigandAtoms(lig_ent, matches,
+                                [(atom_names[b.atom_one],
+                                  atom_names[b.atom_two], b.order)
+                                 for b in compound.bond_specs])
+            res.SetChemClass(compound.chem_class)
+            return
+        msg = f"Atoms of ligand {res.qualified_name} don't match "
+        msg += f"\"{res.name}\" in the compound library: "
+        msg += f"{', '.join(mismatches)}. "
+    else:
+        msg = f"\"{res.name}\" is not available in the compound library. "
+
+    # 3) distance-based heuristic
+    if not fault_tolerant:
+        msg += f"Use fault tolerant mode to ignore this error and use a "
+        msg += f"distance based heuristic to connect the ligand atoms."
+        raise RuntimeError(msg)
+    msg += f"A distance-based heuristic was used to connect the ligand atoms "
+    msg += f"(fault tolerant mode)."
+    ost.LogWarning(msg)
+    for a in res.atoms:
+        conop.DistanceBasedConnect(a)
+    if res.atom_count > 1:
+        unbonded = [a.name for a in res.atoms if a.GetBondCount() == 0]
+        if len(unbonded) > 0:
+            ost.LogWarning(f"Atoms of ligand {res.qualified_name} without "
+                           f"bonds after distance-based connection: "
+                           f"{', '.join(unbonded)}.")
+
+
 def PDBPrep(pdb_path, fault_tolerant=False):
     """ Scoring helper - Prepares scoring input from PDB
 
@@ -318,8 +472,12 @@ def PDBPrep(pdb_path, fault_tolerant=False):
     pdb_entity = io.LoadPDB(pdb_path, fault_tolerant=fault_tolerant)
     # restore old loglevel and return
     ost.PopVerbosityLevel()
-    pdb_entity = CleanHydrogens(pdb_entity, clib)
+    pdb_entity = _RemoveHydrogens(pdb_entity)
+    # process again to set missing residue properties due to non standard
+    # hydrogens (see _RemoveHydrogens)
+    processor = conop.RuleBasedProcessor(clib)
+    processor.Process(pdb_entity)
 
     return pdb_entity
 
-__all__ = ('CleanHydrogens', 'MMCIFPrep', 'PDBPrep')
+__all__ = ('MMCIFPrep', 'PDBPrep')

@@ -291,6 +291,23 @@ BOOST_AUTO_TEST_CASE(mmcif_info_branch)
   BOOST_TEST_MESSAGE("  done.");
 }
 
+BOOST_AUTO_TEST_CASE(mmcif_info_chem_comp)
+{
+  BOOST_TEST_MESSAGE("  Running mmcif_info_chem_comp tests...");
+  MMCifInfoChemCompAtom atom("C1", "C");
+  BOOST_CHECK(atom.name == "C1");
+  BOOST_CHECK(atom.element == "C");
+  MMCifInfoChemCompBond bond("C1", "O", 2);
+  BOOST_CHECK(bond.aname1 == "C1");
+  BOOST_CHECK(bond.aname2 == "O");
+  BOOST_CHECK(bond.bond_order == 2);
+  MMCifInfoChemComp chem_comp;
+  BOOST_CHECK(chem_comp.chem_class == mol::ChemClass::UNKNOWN);
+  BOOST_CHECK(chem_comp.atoms.size() == 0);
+  BOOST_CHECK(chem_comp.bonds.size() == 0);
+  BOOST_TEST_MESSAGE("  done.");
+}
+
 BOOST_AUTO_TEST_CASE(mmcif_info)
 {
   BOOST_TEST_MESSAGE("  Running mmcif_info tests...");
@@ -352,6 +369,29 @@ BOOST_AUTO_TEST_CASE(mmcif_info)
   BOOST_CHECK(info.GetEntityBranchByChain("B")[1].aname1 == "XXXXO3");
   BOOST_CHECK(info.GetEntityBranchByChain("B")[1].aname2 == "XXXXC4");
   BOOST_CHECK(info.GetEntityBranchByChain("B")[1].bond_order == 5);
+
+  // simple check that we can add chemical components
+
+  MMCifInfoChemComp chem_comp;
+  chem_comp.id = "EOH";
+  chem_comp.type = "NON-POLYMER";
+  chem_comp.chem_class = mol::ChemClass(mol::ChemClass::NON_POLYMER);
+  chem_comp.atoms.push_back(MMCifInfoChemCompAtom("C1", "C"));
+  chem_comp.atoms.push_back(MMCifInfoChemCompAtom("O", "O"));
+  chem_comp.bonds.push_back(MMCifInfoChemCompBond("C1", "O", 1));
+  info.AddChemComp(chem_comp);
+  BOOST_CHECK_THROW(info.AddChemComp(chem_comp), IOException);
+
+  BOOST_CHECK(info.GetChemCompIds().size() == 1);
+  BOOST_CHECK(info.GetChemCompIds()[0] == "EOH");
+  BOOST_CHECK_THROW(info.GetChemComp("XXX"), IOException);
+  BOOST_CHECK(info.GetChemComp("EOH").type == "NON-POLYMER");
+  BOOST_CHECK(info.GetChemComp("EOH").chem_class ==
+              mol::ChemClass::NON_POLYMER);
+  BOOST_CHECK(info.GetChemComp("EOH").atoms.size() == 2);
+  BOOST_CHECK(info.GetChemComp("EOH").atoms[1].name == "O");
+  BOOST_CHECK(info.GetChemComp("EOH").bonds.size() == 1);
+  BOOST_CHECK(info.GetChemComp("EOH").bonds[0].aname2 == "O");
 
   BOOST_TEST_MESSAGE("  done.");
 }

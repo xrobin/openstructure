@@ -396,6 +396,11 @@ mol::AtomHandleList GetUnknownAtomsOfResidue(mol::ResidueHandle res,
 
 void Processor::DistanceBasedConnect(mol::AtomHandle atom) const
 {
+  conop::DistanceBasedConnect(atom, connect_hetatm_);
+}
+
+void DistanceBasedConnect(mol::AtomHandle atom, bool connect_hetatm)
+{
   mol::EntityHandle ent=atom.GetEntity();
   mol::XCSEditor editor=ent.EditXCS(mol::BUFFERED_EDIT);
   mol::AtomHandleList alist = ent.FindWithin(atom.GetPos(),4.0);
@@ -403,7 +408,7 @@ void Processor::DistanceBasedConnect(mol::AtomHandle atom) const
   for (mol::AtomHandleList::const_iterator it=alist.begin(),
        e=alist.end();it!=e;++it) {
     if (*it!=atom) {
-      if (!connect_hetatm_ && it->IsHetAtom() && atom.IsHetAtom()) {
+      if (!connect_hetatm && it->IsHetAtom() && atom.IsHetAtom()) {
         continue;
       }
       if (IsBondFeasible(atom, *it)) {

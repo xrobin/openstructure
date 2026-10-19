@@ -302,6 +302,22 @@ void ChemdictParser::InitTypeMap()
   tm_["OTHER"]=mol::ChemClass(mol::ChemClass::UNKNOWN);
 }
 
+bool ChemdictParser::ChemCompTypeToChemClass(const String& type,
+                                             mol::ChemClass& chem_class)
+{
+  InitTypeMap();
+  String upper_type=type;
+  for (String::iterator i=upper_type.begin(), e=upper_type.end(); i!=e; ++i) {
+    *i=toupper(*i);
+  }
+  std::map<String, mol::ChemClass>::const_iterator i=tm_.find(upper_type);
+  if (i==tm_.end()) {
+    return false;
+  }
+  chem_class=i->second;
+  return true;
+}
+
 void ChemdictParser::InitPDBXTypeMap()
 {
   if (!xtm_.empty())

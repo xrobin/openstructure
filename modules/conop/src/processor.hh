@@ -62,7 +62,6 @@ protected:
   void ConnectAtomsOfResidue(mol::ResidueHandle residue, 
                              CompoundPtr compound, bool strict_hydrogens) const;
   void ConnectResidues(mol::ResidueHandle residue, mol::ResidueHandle next) const;
-  static bool AreResiduesConsecutive(mol::ResidueHandle a, mol::ResidueHandle b);
   void DistanceBasedConnect(mol::AtomHandle atom) const;
   mol::AtomHandle LocateAtom(const mol::AtomHandleList&, int ordinal) const;
 public:
@@ -116,6 +115,8 @@ public:
     zero_occ_treatment_ = action;
   }
 
+  static bool AreResiduesConsecutive(mol::ResidueHandle a, mol::ResidueHandle b);
+
   virtual String ToString() const = 0;
 protected:
   String OptionsToString() const; 
@@ -152,6 +153,17 @@ void DLLEXPORT_OST_CONOP AssignBackboneTorsions(mol::ResidueHandle prev,
 
 bool DLLEXPORT_OST_CONOP IsBondFeasible(const mol::AtomHandle&, 
                                         const mol::AtomHandle&);
+
+/// \brief connect atom to all atoms within bonding distance
+///
+/// Bonds are only formed to atoms of the same residue or of the next/previous
+/// residue in the same chain, if \ref IsBondFeasible holds (bond order 1).
+/// With \p connect_hetatm false, no bond is formed between two HETATM atoms.
+/// This is the distance-based heuristic the processors apply to unknown
+/// residues.
+void DLLEXPORT_OST_CONOP DistanceBasedConnect(mol::AtomHandle atom,
+                                              bool connect_hetatm=true);
+
 mol::AtomHandleList DLLEXPORT_OST_CONOP 
 GetUnknownAtomsOfResidue(mol::ResidueHandle residue, 
                          CompoundPtr compound,

@@ -27,6 +27,7 @@
 #include <ost/conop/minimal_compound_lib.hh>
 
 #include <ost/io/mol/mmcif_reader.hh>
+#include <ost/io/mol/chemdict_parser.hh>
 
 namespace ost { namespace io {
 
@@ -83,6 +84,9 @@ void MMCifReader::ClearState()
   database_PDB_rev_added_ = false;
   entity_branch_link_map_.clear();
   entity_poly_seq_map_.clear();
+  chem_comp_rows_map_.clear();
+  chem_comp_skipped_    = false;
+  chem_comp_without_id_ = false;
 }
 
 void MMCifReader::SetRestrictChains(const String& restrict_chains)
@@ -423,6 +427,56 @@ bool MMCifReader::OnBeginLoop(const StarLoopDesc& header)
     // optional items
     indices_[EM_RESOLUTION] = header.GetIndex("resolution");
     cat_available = true;
+  } else if (header.GetCategory() == "chem_comp") {
+    category_ = CHEM_COMP;
+    // id and type are mandatory, but chem_comp rows are only checked if the
+    // data block also defines atoms (AddChemCompsToInfo), so missing items
+    // must not fail files without compound definitions
+    indices_[CC_ID] = header.GetIndex("id");
+    indices_[CC_TYPE] = header.GetIndex("type");
+    if (indices_[CC_ID] == -1) {
+      chem_comp_without_id_ = true;
+    } else {
+      cat_available = true;
+    }
+  } else if (header.GetCategory() == "chem_comp_atom") {
+    category_ = CHEM_COMP_ATOM;
+    try {
+      // mandatory items
+      this->TryStoreIdx(CCA_COMP_ID, "comp_id", header);
+      this->TryStoreIdx(CCA_ATOM_ID, "atom_id", header);
+      this->TryStoreIdx(CCA_TYPE_SYMBOL, "type_symbol", header);
+      cat_available = true;
+    } catch (const IOException& e) {
+      if (profile_.fault_tolerant) {
+        LOG_WARNING(e.what() << ". Ignoring all chemical component "
+                    "definitions of this data block.");
+        chem_comp_skipped_ = true;
+        cat_available = false;
+      } else {
+        throw;
+      }
+    }
+  } else if (header.GetCategory() == "chem_comp_bond") {
+    category_ = CHEM_COMP_BOND;
+    try {
+      // mandatory items
+      this->TryStoreIdx(CCB_COMP_ID, "comp_id", header);
+      this->TryStoreIdx(CCB_ATOM_ID_1, "atom_id_1", header);
+      this->TryStoreIdx(CCB_ATOM_ID_2, "atom_id_2", header);
+      // optional items
+      indices_[CCB_VALUE_ORDER] = header.GetIndex("value_order");
+      cat_available = true;
+    } catch (const IOException& e) {
+      if (profile_.fault_tolerant) {
+        LOG_WARNING(e.what() << ". Ignoring all chemical component "
+                    "definitions of this data block.");
+        chem_comp_skipped_ = true;
+        cat_available = false;
+      } else {
+        throw;
+      }
+    }
   }
   category_counts_[category_]++;
   return cat_available;
@@ -1626,6 +1680,18 @@ void MMCifReader::OnDataRow(const StarLoopDesc& header,
     LOG_TRACE("processing em_3d_reconstruction entry");
     this->ParseEm3DReconstruction(columns);
     break;
+  case CHEM_COMP:
+    LOG_TRACE("processing chem_comp entry");
+    this->ParseChemComp(columns);
+    break;
+  case CHEM_COMP_ATOM:
+    LOG_TRACE("processing chem_comp_atom entry");
+    this->ParseChemCompAtom(columns);
+    break;
+  case CHEM_COMP_BOND:
+    LOG_TRACE("processing chem_comp_bond entry");
+    this->ParseChemCompBond(columns);
+    break;
   default:
     throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR,
                        "Uncatched category '"+ header.GetCategory() +"' found.",
@@ -1885,6 +1951,152 @@ void MMCifReader::ParseEntityPolySeq(const std::vector<StringRef>& columns)
   }
 }
 
+void MMCifReader::ParseChemComp(const std::vector<StringRef>& columns)
+{
+  // [] inserts new (zero-initialised) value if not present
+  MMCifChemCompRows& rows = chem_comp_rows_map_[columns[indices_[CC_ID]].str()];
+  ++rows.chem_comp_rows;
+  if (indices_[CC_TYPE] != -1) {
+    rows.has_type = true;
+    rows.type = columns[indices_[CC_TYPE]].str();
+  }
+}
+
+void MMCifReader::ParseChemCompAtom(const std::vector<StringRef>& columns)
+{
+  MMCifChemCompRows& rows =
+    chem_comp_rows_map_[columns[indices_[CCA_COMP_ID]].str()];
+  rows.atoms.push_back(
+    MMCifInfoChemCompAtom(columns[indices_[CCA_ATOM_ID]].str(),
+                          columns[indices_[CCA_TYPE_SYMBOL]].str()));
+}
+
+void MMCifReader::ParseChemCompBond(const std::vector<StringRef>& columns)
+{
+  String comp_id = columns[indices_[CCB_COMP_ID]].str();
+  // value_order is optional and defaults to "sing". Only single, double and
+  // triple bonds are representable: the other values of the enumeration
+  // become 1, anything else is an error.
+  unsigned char bond_order = 1;
+  if (indices_[CCB_VALUE_ORDER] != -1 &&
+      !IsUndefined(columns[indices_[CCB_VALUE_ORDER]])) {
+    String value_order = columns[indices_[CCB_VALUE_ORDER]].str();
+    for (String::iterator i=value_order.begin(), e=value_order.end(); i!=e;
+         ++i) {
+      *i=tolower(*i);
+    }
+    if (value_order == "sing") {
+      bond_order = 1;
+    } else if (value_order == "doub") {
+      bond_order = 2;
+    } else if (value_order == "trip") {
+      bond_order = 3;
+    } else if (value_order == "arom" || value_order == "delo" ||
+               value_order == "pi" || value_order == "poly" ||
+               value_order == "quad") {
+      LOG_WARNING("Bond order '" << value_order << "' of chemical component '"
+                  << comp_id << "' set to 1 (only single, double and triple "
+                  "bonds are supported).");
+    } else {
+      std::stringstream ss;
+      ss << "Invalid _chem_comp_bond.value_order '"
+         << columns[indices_[CCB_VALUE_ORDER]] << "' for chemical component '"
+         << comp_id << "'";
+      if (profile_.fault_tolerant) {
+        LOG_WARNING(this->FormatDiagnostic(STAR_DIAG_WARNING,
+                                           ss.str() + ", set to 1.",
+                                           this->GetCurrentLinenum()));
+      } else {
+        throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR, ss.str(),
+                                                 this->GetCurrentLinenum()));
+      }
+    }
+  }
+  MMCifChemCompRows& rows = chem_comp_rows_map_[comp_id];
+  rows.bonds.push_back(
+    MMCifInfoChemCompBond(columns[indices_[CCB_ATOM_ID_1]].str(),
+                          columns[indices_[CCB_ATOM_ID_2]].str(),
+                          bond_order));
+}
+
+void MMCifReader::AddChemCompsToInfo()
+{
+  if (chem_comp_skipped_) {
+    return;
+  }
+  for (MMCifChemCompRowsMap::const_iterator it = chem_comp_rows_map_.begin();
+       it != chem_comp_rows_map_.end(); ++it) {
+    const String& comp_id = it->first;
+    const MMCifChemCompRows& rows = it->second;
+    if (rows.atoms.empty() && rows.bonds.empty()) {
+      // chem_comp row only: the file doesn't define this compound
+      continue;
+    }
+    MMCifInfoChemComp chem_comp;
+    chem_comp.id = comp_id;
+    chem_comp.type = rows.type;
+    chem_comp.atoms = rows.atoms;
+    chem_comp.bonds = rows.bonds;
+    String error;
+    if (rows.chem_comp_rows == 0) {
+      error = "_chem_comp_atom/_chem_comp_bond rows without _chem_comp row";
+      if (chem_comp_without_id_) {
+        error += " (_chem_comp has no id item)";
+      }
+    } else if (rows.chem_comp_rows > 1) {
+      error = "more than one _chem_comp row";
+    } else if (rows.atoms.empty()) {
+      error = "_chem_comp_bond rows without _chem_comp_atom rows";
+    } else if (!rows.has_type) {
+      error = "no _chem_comp.type";
+    } else if (comp_id == "HOH" || comp_id == "DOD") {
+      // same as in the compound library (ChemdictParser): type of water in the
+      // CCD is "?"
+      chem_comp.chem_class = mol::ChemClass(mol::ChemClass::WATER);
+    } else if (!ChemdictParser::ChemCompTypeToChemClass(rows.type,
+                                                        chem_comp.chem_class)) {
+      error = "unknown _chem_comp.type '" + rows.type + "'";
+    }
+    std::set<String> atom_names;
+    for (std::vector<MMCifInfoChemCompAtom>::const_iterator
+         a_it = rows.atoms.begin(); a_it != rows.atoms.end(); ++a_it) {
+      if (!error.empty()) {
+        break;
+      }
+      if (IsUndefined(StringRef(a_it->element.c_str(),
+                                a_it->element.length()))) {
+        error = "no _chem_comp_atom.type_symbol for atom '" + a_it->name + "'";
+      } else if (!atom_names.insert(a_it->name).second) {
+        error = "duplicate atom '" + a_it->name + "'";
+      }
+    }
+    for (std::vector<MMCifInfoChemCompBond>::const_iterator
+         b_it = rows.bonds.begin(); b_it != rows.bonds.end(); ++b_it) {
+      if (!error.empty()) {
+        break;
+      }
+      if (atom_names.find(b_it->aname1) == atom_names.end() ||
+          atom_names.find(b_it->aname2) == atom_names.end()) {
+        error = "bond between '" + b_it->aname1 + "' and '" + b_it->aname2 +
+                "' refers to an undefined atom";
+      }
+    }
+    if (error.empty() && rows.atoms.size() > 1 && rows.bonds.empty()) {
+      error = "more than one atom but no bonds";
+    }
+    if (!error.empty()) {
+      String msg = "Invalid definition of chemical component '" + comp_id +
+                   "': " + error;
+      if (profile_.fault_tolerant) {
+        LOG_WARNING(msg << ". Ignoring it.");
+        continue;
+      }
+      throw IOException(this->FormatDiagnostic(STAR_DIAG_ERROR, msg));
+    }
+    info_.AddChemComp(chem_comp);
+  }
+}
+
 void MMCifReader::OnEndData()
 {
   mol::XCSEditor editor=ent_handle_.EditXCS(mol::BUFFERED_EDIT);
@@ -2035,6 +2247,10 @@ void MMCifReader::OnEndData()
       }
     }
   }
+
+  // chemical component definitions (_chem_comp, _chem_comp_atom,
+  // _chem_comp_bond)
+  this->AddChemCompsToInfo();
 
   // conclude EntityDesc (add entity_poly_seq if present) and add to MMCifInfo
   for(auto &entity_it: entity_desc_map_) {

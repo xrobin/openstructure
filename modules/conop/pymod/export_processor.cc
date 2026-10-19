@@ -106,6 +106,8 @@ void export_processor() {
   def("AssignBackboneTorsions", AssignBackboneTorsionsRes,
       (arg("prev"), arg("res"), arg("next")));
   def("IsBondFeasible", &IsBondFeasible, (arg("atom_a"), arg("atom_b")));
+  def("DistanceBasedConnect", &DistanceBasedConnect,
+      (arg("atom"), arg("connect_hetatm")=true));
   def("GetUnknownAtomsOfResidue", &GetUnknownAtomsOfResidue,
       (arg("residue"), arg("compound"), arg("strict_hydrogens")=false));
 }
