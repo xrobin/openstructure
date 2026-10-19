@@ -3,6 +3,7 @@ Changes in develop
 
  * Replace molecular viewer for jupyter notebooks in Singularity container. Use
    py3Dmol instead of nglview.
+ * Minor bugfixes
 
 
 Changes in Release 2.12.0

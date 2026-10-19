@@ -60,10 +60,12 @@ namespace {
     extract<ChemClass> ex1(po);
     if(ex1.check()) {
       b->SetChemClass(ex1());
+      return;
     }
     extract<char> ex2(po);
     if(ex2.check()) {
       b->SetChemClass(ChemClass(ex2()));
+      return;
     }
     std::string st=extract<std::string>(po);
     if(st.empty()) {
