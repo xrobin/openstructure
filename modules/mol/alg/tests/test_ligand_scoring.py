@@ -387,7 +387,10 @@ class TestLigandScoringFancy(unittest.TestCase):
 
         trg_4c0a, trg_4c0a_lig = scoring_base.MMCIFPrep(_GetTestfilePath("4c0a.cif.gz"),
                                                                extract_nonpoly = True)
-        sc = ligand_scoring_scrmsd.SCRMSDScorer(trg, trg_4c0a, trg_lig, trg_4c0a_lig)
+        # 1r8q and 4c0a are different complexes, enforce mapping of all chains
+        sc = ligand_scoring_scrmsd.SCRMSDScorer(trg, trg_4c0a, trg_lig, trg_4c0a_lig,
+                                                mdl_map_pep_seqid_thr = 0.,
+                                                mdl_map_nuc_seqid_thr = 0.)
         expected_keys = {"J", "F"}
         self.assertFalse(expected_keys.symmetric_difference(sc.score.keys()))
         self.assertFalse(expected_keys.symmetric_difference(sc.aux.keys()))
@@ -418,8 +421,11 @@ class TestLigandScoringFancy(unittest.TestCase):
         trg_4c0a, trg_4c0a_lig = scoring_base.MMCIFPrep(_GetTestfilePath("4c0a.cif.gz"),
                                                         extract_nonpoly = True)
 
+        # 1r8q and 4c0a are different complexes, enforce mapping of all chains
         sc = ligand_scoring_lddtpli.LDDTPLIScorer(trg, trg_4c0a, trg_lig, trg_4c0a_lig,
                                                   add_mdl_contacts=False,
+                                                  mdl_map_pep_seqid_thr = 0.,
+                                                  mdl_map_nuc_seqid_thr = 0.,
                                                   lddt_pli_binding_site_radius = 4.0)
         expected_keys = {"J", "F"}
         self.assertFalse(expected_keys.symmetric_difference(sc.score.keys()))
@@ -438,7 +444,9 @@ class TestLigandScoringFancy(unittest.TestCase):
 
         # lddt_pli with added mdl contacts
         sc = ligand_scoring_lddtpli.LDDTPLIScorer(trg, trg_4c0a, trg_lig, trg_4c0a_lig,
-                                                  add_mdl_contacts=True)
+                                                  add_mdl_contacts=True,
+                                                  mdl_map_pep_seqid_thr = 0.,
+                                                  mdl_map_nuc_seqid_thr = 0.)
         self.assertAlmostEqual(sc.score["J"][mol.ResNum(1)], 0.8988340192043895, 5)
         self.assertAlmostEqual(sc.score["F"][mol.ResNum(1)], 0.9039735099337749, 5)
         # lddt_pli_details

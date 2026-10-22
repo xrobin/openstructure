@@ -250,8 +250,8 @@ class LigandScorer:
                  rename_ligand_chain=False, min_pep_length = 6,
                  min_nuc_length = 4, pep_seqid_thr = 95.,
                  nuc_seqid_thr = 95.,
-                 mdl_map_pep_seqid_thr = 0.,
-                 mdl_map_nuc_seqid_thr = 0.,
+                 mdl_map_pep_seqid_thr = 70.,
+                 mdl_map_nuc_seqid_thr = 70.,
                  seqres = None,
                  trg_seqres_mapping = None):
 

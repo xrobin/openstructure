@@ -280,8 +280,8 @@ class Scorer:
                  dockq_capri_peptide=False, lddt_symmetry_settings = None,
                  lddt_inclusion_radius = 15.0,
                  pep_seqid_thr = 95., nuc_seqid_thr = 95.,
-                 mdl_map_pep_seqid_thr = 0.,
-                 mdl_map_nuc_seqid_thr = 0.,
+                 mdl_map_pep_seqid_thr = 70.,
+                 mdl_map_nuc_seqid_thr = 70.,
                  seqres = None,
                  trg_seqres_mapping = None):
 

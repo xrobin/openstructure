@@ -13,6 +13,9 @@ Changes in develop
    fault tolerant mode. Warnings of the mmCIF reader are no longer silenced.
  * Removed scoring_base.CleanHydrogens, only used by MMCIFPrep and PDBPrep.
  * Export conop.DistanceBasedConnect to Python.
+ * Scorer and LigandScorer (and derived classes) now default to
+   mdl_map_pep_seqid_thr/mdl_map_nuc_seqid_thr of 70, consistent with the
+   actions default.
  * Minor bugfixes
 
 
