@@ -461,6 +461,30 @@ class TestChainMapper(unittest.TestCase):
 
     self.assertRaises(RuntimeError, mapper._ComputeChemGroups)
 
+    # '?' and 'X' are considered equal (MMCifReader.GetSeqRes reports
+    # compounds with one letter code '?' as 'X')
+    ref.residues[0].SetOneLetterCode(seqres[0][ref.residues[0].number.num-1])
+    # residue present in A and B that passes backbone filter (N, CA, C, CB)
+    rnum = ref.FindResidue("A", mol.ResNum(10)).GetNumber()
+    for cname in ["A", "B"]:
+      r = ref.FindResidue(cname, rnum)
+      self.assertTrue(r.IsValid())
+      for aname in ["N", "CA", "C", "CB"]:
+        self.assertTrue(r.FindAtom(aname).IsValid())
+    seqres_olcs = list(seqres[0].GetString())
+    for olc, seqres_olc in [('?', 'X'), ('X', '?')]:
+      for cname in ["A", "B"]:
+        ref.FindResidue(cname, rnum).SetOneLetterCode(olc)
+      seqres_olcs[rnum.GetNum()-1] = seqres_olc
+      seqres_x = seq.CreateSequenceList()
+      seqres_x.AddSequence(seq.CreateSequence("1", ''.join(seqres_olcs)))
+      seqres_x.AddSequence(seqres[1])
+      seqres_x.AddSequence(seqres[2])
+      mapper = ChainMapper(ref, resnum_alignments=True,
+                           seqres = seqres_x,
+                           trg_seqres_mapping = trg_seqres_mapping)
+      self.assertEqual(mapper.chem_groups, [["A","B"], ["C"], ["D"]])
+
 
 
 

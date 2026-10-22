@@ -502,7 +502,8 @@ class ChainMapper:
       entity information. Alignments are performed based on residue numbers
       in this case and don't consider the *resnum_alignments* flag. Any
       mismatch of one letter code in the structure and the respective SEQRES
-      raises an error.
+      raises an error. '?' and 'X' both denote non-standard/unknown compounds
+      and are considered equal.
 
     * Map chains in an input model to these groups. Parameters for generating
       alignments are the same as above. Model chains are mapped to the chem
@@ -586,7 +587,9 @@ class ChainMapper:
                    *trg_seqres_mapping* and an error is raised otherwise.
                    The one letter codes in
                    the structure must exactly match the respective characters
-                   in seqres and an error is raised if not. These seqres
+                   in seqres and an error is raised if not. '?' and 'X'
+                   both denote non-standard/unknown compounds and are
+                   considered equal. These seqres
                    sequences are set as :attr:`~chem_group_ref_seqs` and will
                    thus influence the mapping of model chains.
     :type seqres: :class:`ost.seq.SequenceList`
@@ -2073,7 +2076,10 @@ class ChainMapper:
                     raise RuntimeError(f"Observed residue with invalid number: "
                                        f"\"{r}\" which cannot be aligned to "
                                        f"seqres with id \"{seqres_name}\"")
-                if olc != seqres[num-1]:
+                # '?' and 'X' both denote non-standard/unknown compounds, e.g.
+                # MMCifReader.GetSeqRes reports compounds with olc '?' as 'X'
+                if olc != seqres[num-1] and \
+                   not {olc, seqres[num-1]} <= {'?', 'X'}:
                     raise RuntimeError(f"Sequence mismatch of residue \"{r}\" "
                                        f"with olc \"{olc}\" and residue number "
                                        f"\"{num}\". Character at that location "
