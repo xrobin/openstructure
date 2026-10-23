@@ -16,6 +16,10 @@ Changes in develop
  * Scorer and LigandScorer (and derived classes) now default to
    mdl_map_pep_seqid_thr/mdl_map_nuc_seqid_thr of 70, consistent with the
    actions default.
+ * Chain mapping with SEQRES: chains with identical SEQRES end up in the same
+   chem group, even if they belong to different entities, e.g. entities only
+   differing by modified residues (SEP vs. SER). Chem groups thus no longer
+   correspond one-to-one to entities.
  * Minor bugfixes
 
 

@@ -485,6 +485,43 @@ class TestChainMapper(unittest.TestCase):
                            trg_seqres_mapping = trg_seqres_mapping)
       self.assertEqual(mapper.chem_groups, [["A","B"], ["C"], ["D"]])
 
+  def test_seqres_identical_sequences(self):
+    # Entities that only differ by modified residues (e.g. SEP vs. SER) have
+    # identical SEQRES one letter codes. Their chains must end up in the same
+    # chem group as model chains cannot be assigned to one or the other.
+    ref = _LoadFile("3l1p.1.pdb")
+    mdl = _LoadFile("3l1p.1_model.pdb")
+
+    pep_seqres = "GAMDMKALQKELEQFAKLLKQKRITLGYTQADVGLTLGVLFGKVFSQTTISRFEALQ"\
+                 "LSLKNMSKLRPLLEKWVEEADNNENLQEISKSETLVQARKRKRTSIENRVRWSLETMF"\
+                 "LKSPKPSLQQITHIANQLGLEKDVVRVWFSNRRQKGKRSS"
+    seqres = seq.CreateSequenceList()
+    seqres.AddSequence(seq.CreateSequence("1", pep_seqres))
+    seqres.AddSequence(seq.CreateSequence("2", "TCCACATTTGAAAGGCAAATGGA"))
+    seqres.AddSequence(seq.CreateSequence("3", "ATCCATTTGCCTTTCAAATGTGG"))
+    seqres.AddSequence(seq.CreateSequence("4", pep_seqres))
+    trg_seqres_mapping = {"A": "1",
+                          "B": "4",
+                          "C": "2",
+                          "D": "3"}
+
+    for resnum_alignments in [True, False]:
+      mapper = ChainMapper(ref, resnum_alignments=resnum_alignments,
+                           seqres = seqres,
+                           trg_seqres_mapping = trg_seqres_mapping)
+      self.assertEqual(mapper.chem_groups, [["A","B"], ["C"], ["D"]])
+      self.assertEqual([s.GetName() for s in mapper.chem_group_ref_seqs],
+                       ["1", "2", "3"])
+
+      # self comparison
+      chem_mapping, _, _, _ = mapper.GetChemMapping(ref)
+      self.assertEqual(chem_mapping, [["A","B"], ["C"], ["D"]])
+      lddt_res = mapper.GetlDDTMapping(ref, strategy="naive")
+      self.assertEqual(lddt_res.mapping, [["A","B"], ["C"], ["D"]])
+
+      naive_lddt_res = mapper.GetlDDTMapping(mdl, strategy="naive")
+      self.assertEqual(naive_lddt_res.mapping, [['X', 'Y'],[None],['Z']])
+
 
 
 
