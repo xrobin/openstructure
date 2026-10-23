@@ -503,7 +503,10 @@ class ChainMapper:
       in this case and don't consider the *resnum_alignments* flag. Any
       mismatch of one letter code in the structure and the respective SEQRES
       raises an error. '?' and 'X' both denote non-standard/unknown compounds
-      and are considered equal.
+      and are considered equal. Chains mapping to identical SEQRES end up in
+      the same group, as model chains could not be assigned to one or the
+      other in the next step. This happens e.g. with mmCIF entities only
+      differing by modified residues such as SEP vs. SER (one letter code S).
 
     * Map chains in an input model to these groups. Parameters for generating
       alignments are the same as above. Model chains are mapped to the chem
@@ -589,7 +592,8 @@ class ChainMapper:
                    the structure must exactly match the respective characters
                    in seqres and an error is raised if not. '?' and 'X'
                    both denote non-standard/unknown compounds and are
-                   considered equal. These seqres
+                   considered equal. Chains mapping to identical sequences
+                   end up in the same chem group. These seqres
                    sequences are set as :attr:`~chem_group_ref_seqs` and will
                    thus influence the mapping of model chains.
     :type seqres: :class:`ost.seq.SequenceList`
@@ -713,7 +717,8 @@ class ChainMapper:
     def chem_groups(self):
         """Groups of chemically equivalent chains in :attr:`~target`
 
-        First chain in group is the one with longest sequence.
+        First chain in group is the one with longest sequence. If *seqres* is
+        given, chains are in the same order as in :attr:`~target` instead.
       
         :getter: Computed on first use (cached)
         :type: :class:`list` of :class:`list` of :class:`str` (chain names)
@@ -2044,12 +2049,18 @@ class ChainMapper:
 
     def _GroupSequencesSEQRES(self, poly_seqs):
 
+        # Groups are keyed by SEQRES sequence, not by SEQRES name (entity id),
+        # as _MapSequence cannot assign model chains to one or the other of
+        # several identical SEQRES. This happens e.g. with entities only
+        # differing by modified residues such as SEP vs. SER (both S).
+        seqres_strings = {s.GetName(): s.GetString() for s in self.seqres}
         alns = dict()
 
         for poly_seq in poly_seqs:
             sname = poly_seq.GetName()
             seqres_name = self.trg_seqres_mapping[sname]
-            if seqres_name not in alns:
+            seqres_key = seqres_strings.get(seqres_name)
+            if seqres_key not in alns:
                 aln = seq.CreateAlignment()
                 seqres = None
                 for s in self.seqres:
@@ -2063,8 +2074,8 @@ class ChainMapper:
                     raise RuntimeError("You should never get here - contact "
                                        "OST developer")
                 aln.AddSequence(seqres)
-                alns[seqres_name] = aln
-            seqres = alns[seqres_name].GetSequence(0)
+                alns[seqres_key] = aln
+            seqres = alns[seqres_key].GetSequence(0)
             aln_length = seqres.GetLength()
             atomseq = ['-'] * aln_length
             trg_chain = self.target.FindChain(sname)
@@ -2087,7 +2098,7 @@ class ChainMapper:
                                        f"Seqres name: \"{seqres_name}\"")
                 atomseq[num-1] = olc
             atomseq = ''.join(atomseq)
-            alns[seqres_name].AddSequence(seq.CreateSequence(sname, atomseq))
+            alns[seqres_key].AddSequence(seq.CreateSequence(sname, atomseq))
 
         return [aln for aln in alns.values()]
 

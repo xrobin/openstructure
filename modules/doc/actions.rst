@@ -84,6 +84,8 @@ Details on the usage (output of ``ost compare-structures --help``):
     file or if "seqres"/"trg-seqres-mapping" are provided manually. Alignments
     of structure to SEQRES are established using residue numbers in these cases
     and matching structure one letter codes and SEQRES are enforced.
+    Chains with identical SEQRES end up in the same group, even if they belong
+    to different entities (e.g. entities only differing by modified residues).
     In case of a PDB reference without predefined SEQRES, groups are established
     using clustering based on pairwise alignments. Chains within
     "chem_group_seqid_thresh" are considered equivalent and alignments are
@@ -413,7 +415,7 @@ Details on the usage (output of ``ost compare-structures --help``):
                           length/min-nuc-length residues are aligned. The same threshold is
                           applied to peptide and nucleotide chains.
     --seqres SEQRES       Default: None - manually define chem groups by specifying path to a
-                          fasta file. Each sequence in that file is considered a reference
+                          fasta file. Each unique sequence in that file is considered a reference
                           sequence of a chem group. All polymer chains in reference will be
                           aligned to these sequences. This only works if -rna/--residue-number-
                           alignment is enabled and an error is raised otherwise. Additionally,
@@ -532,6 +534,8 @@ Details on the usage (output of ``ost compare-ligand-structures --help``):
     file or if "seqres"/"trg-seqres-mapping" are provided manually. Alignments
     of structure to SEQRES are established using residue numbers in these cases
     and matching structure one letter codes and SEQRES are enforced.
+    Chains with identical SEQRES end up in the same group, even if they belong
+    to different entities (e.g. entities only differing by modified residues).
     In case of a PDB reference without predefined SEQRES, groups are established
     using clustering based on pairwise alignments. Chains within
     "chem_group_seqid_thresh" are considered equivalent and alignments are
@@ -709,7 +713,7 @@ Details on the usage (output of ``ost compare-ligand-structures --help``):
                           length/min-nuc-length residues are aligned. The same threshold is
                           applied to peptide and nucleotide chains.
     --seqres SEQRES       Default: None - manually define chem groups by specifying path to a
-                          fasta file. Each sequence in that file is considered a reference
+                          fasta file. Each unique sequence in that file is considered a reference
                           sequence of a chem group. All polymer chains in reference will be
                           aligned to these sequences. This only works if -rna/--residue-number-
                           alignment is enabled and an error is raised otherwise. Additionally,
