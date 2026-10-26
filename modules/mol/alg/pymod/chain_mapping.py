@@ -510,7 +510,8 @@ class ChainMapper:
 
     * Map chains in an input model to these groups. Parameters for generating
       alignments are the same as above. Model chains are mapped to the chem
-      group with highest sequence identity. Optionally, you can set a minimum
+      group with highest sequence identity, relative to the length of the
+      longer of the two aligned sequences. Optionally, you can set a minimum
       sequence identity threshold with *mdl_map_pep_seqid_thr*/
       *mdl_map_nuc_seqid_thr* to avoid nonsensical mappings. You can either
       get the group mapping with :func:`GetChemMapping` or directly call
@@ -576,7 +577,8 @@ class ChainMapper:
                                   *mdl_map_pep_seqid_thr* and at least
                                   *min_pep_length* aligned residues. If set to
                                   zero, it simply assigns a model chain to the
-                                  chem group with highest sequence identity.
+                                  chem group with highest sequence identity,
+                                  relative to the longer sequence.
                                   Range: [0-100].
     :type mdl_map_pep_seqid_thr: :class:`float`
     :param mdl_map_nuc_seqid_thr: Nucleotide equivalent of
@@ -2237,13 +2239,12 @@ class ChainMapper:
 
     def _MapSequence(self, ref_seqs, ref_types, s, s_type, s_ent,
                      seq_id_thr=0.0, min_aln_length=0):
-        """Tries top map *s* onto any of the sequences in *ref_seqs*
+        """Tries to map *s* onto any of the sequences in *ref_seqs*
     
         Computes alignments of *s* to each of the reference sequences of equal type
-        and sorts them by seqid*fraction_covered (seqid: sequence identity of
-        aligned columns in alignment, fraction_covered: Fraction of non-gap
-        characters in reference sequence that are covered by non-gap characters in
-        *s*). Best scoring mapping is returned. Optionally, *seq_id*/
+        and sorts them by sequence identity relative to the length of the
+        longer of the two sequences (seq.alg.RefMode.LONGER_SEQUENCE).
+        Best scoring mapping is returned. Optionally, *seq_id_thr*/
         *min_aln_length* thresholds can be enabled to avoid non-sensical mappings.
         However, *min_aln_length* only has an effect if *seq_id_thr* > 0!!!
     
@@ -2259,7 +2260,8 @@ class ChainMapper:
         :param s_ent: Entity which represents *s*. Only relevant in case of
                       residue number alignments.
         :type s_ent: :class:`ost.mol.EntityHandle`/:class:`ost.mol.EntityView`
-        :param seq_id_thr: Minimum sequence identity to be considered as match
+        :param seq_id_thr: Minimum sequence identity (in percent of aligned
+                           columns) to be considered as match
         :type seq_id_thr: :class:`float`
         :param min_aln_length: Minimum number of aligned columns to be considered
                                as match. Only has an effect if *seq_id_thr* > 0!
@@ -2269,8 +2271,6 @@ class ChainMapper:
                   sequence from *ref_seqs* as first sequence. Both elements are
                   None if no mapping can be found or if thresholds are not 
                   fulfilled for any alignment.
-        :raises: :class:`RuntimeError` if mapping is ambiguous, i.e. *s*
-                 successfully maps to more than one sequence in *ref_seqs* 
         """
         scored_alns = list()
         for ref_idx, ref_seq in enumerate(ref_seqs):
@@ -2281,15 +2281,12 @@ class ChainMapper:
                     aln = self.ResNumAlign(ref_seq, s, self.target, s_ent)
                 else:
                     aln = self.NWAlign(ref_seq, s, s_type)
-                seqid, n_tot, n_aligned = _GetAlnPropsTwo(aln)
+                seqid, n_aligned = _GetAlnPropsOne(aln)
+                score = seq.alg.SequenceIdentity(aln, seq.alg.RefMode.LONGER_SEQUENCE)
                 if seq_id_thr > 0:
                     if seqid >= seq_id_thr and n_aligned >= min_aln_length:
-                        fraction_covered = float(n_aligned)/n_tot
-                        score = seqid * fraction_covered
                         scored_alns.append((score, ref_idx, aln))
                 else:
-                    fraction_covered = float(n_aligned)/n_tot
-                    score = seqid * fraction_covered
                     scored_alns.append((score, ref_idx, aln))
     
         if len(scored_alns) == 0:
@@ -2297,20 +2294,6 @@ class ChainMapper:
     
         scored_alns = sorted(scored_alns, key=lambda x: x[0], reverse=True)
         return (scored_alns[0][1], scored_alns[0][2])
-
-def _GetAlnPropsTwo(aln):
-    """Returns basic properties of *aln* version two...
-
-    :param aln: Alignment to compute properties
-    :type aln: :class:`seq.AlignmentHandle`
-    :returns: Tuple with 3 elements. 1) sequence identity in range [0, 100] 
-              considering aligned columns 2) Number of non gap characters in
-              first sequence 3) Number of aligned characters.
-    """
-    assert(aln.GetCount() == 2)
-    n_tot = sum([1 for col in aln if col[0] != '-'])
-    n_aligned = sum([1 for col in aln if (col[0] != '-' and col[1] != '-')])
-    return (seq.alg.SequenceIdentity(aln), n_tot, n_aligned) 
 
 def _GetAlnPropsOne(aln):
     

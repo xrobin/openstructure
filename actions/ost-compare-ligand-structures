@@ -464,9 +464,10 @@ def _ParseArgs():
               "chains to groups derived in the chem grouping step in chain "
               "mapping. If set to 0., a mapping is enforced and each model "
               "chain is assigned to the chem group with maximum sequence "
-              "identity. If larger than 0., a mapping only happens if the "
-              "respective model chain can be aligned to a chem group with the "
-              "specified sequence identity threshold AND if at least "
+              "identity, relative to the longer sequence. If larger than 0., "
+              "a mapping only happens if the respective model chain can be "
+              "aligned to a chem group with the specified sequence identity "
+              "threshold (of aligned residues) AND if at least "
               "min-pep-length/min-nuc-length residues are aligned. The same "
               "threshold is applied to peptide and nucleotide chains.")
     )
