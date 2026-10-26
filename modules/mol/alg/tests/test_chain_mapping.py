@@ -14,6 +14,24 @@ def _LoadFile(file_name):
   """Helper to avoid repeating input path over and over."""
   return io.LoadPDB(os.path.join('testfiles', file_name))
 
+def _CreatePeptideChains(chains):
+  """Helper to create an entity from (chain name, sequence, residue numbers)
+  tuples. Backbone atoms are placed at dummy positions, which is enough for
+  sequence based chem mapping."""
+  ent = mol.CreateEntity()
+  ed = ent.EditXCS()
+  for cname, s, rnums in chains:
+    ch = ed.InsertChain(cname)
+    for rnum in rnums:
+      olc = s[rnum-1]
+      r = ed.AppendResidue(ch, conop.OneLetterCodeToResidueName(olc),
+                           mol.ResNum(rnum))
+      r.SetOneLetterCode(olc)
+      r.SetChemClass(mol.ChemClass(mol.L_PEPTIDE_LINKING))
+      for a_idx, aname in enumerate(["N", "CA", "C", "CB"]):
+        ed.InsertAtom(r, aname, ost.geom.Vec3(3.8*rnum, 0.0, a_idx))
+  return ent
+
 def _CompareViews(v1, v2):
   """Iterates over atoms of the two views and compares qualified names / pos
   """
@@ -522,6 +540,40 @@ class TestChainMapper(unittest.TestCase):
       naive_lddt_res = mapper.GetlDDTMapping(mdl, strategy="naive")
       self.assertEqual(naive_lddt_res.mapping, [['X', 'Y'],[None],['Z']])
 
+  def test_chem_mapping_terminal_extension(self):
+    # Entities only differing by a C-terminal tag. A model chain with the tag
+    # must map to the tagged entity, independent of the chain order in the
+    # target and also with a mismatch in the tag. Residues of the model chain
+    # without counterpart in the untagged SEQRES must not be ignored.
+    pep = "GAMDMKALQKELEQFAKLLKQKRITLGYTQADVGLTLGVLFGKVFSQTTISRFEALQ"\
+          "LSLKNMSKLRPLLEKWVEEADNNENLQEISKSETLVQARKRKRTSIENRVRWSLETMF"\
+          "LKSPKPSLQQITHIANQLGLEKDVVRVWFSNRRQKGKRSS"
+    seqres_seqs = {"1": pep, "2": pep + "HHHHHH"}
+    seqres = seq.CreateSequenceList()
+    for name, s in seqres_seqs.items():
+      seqres.AddSequence(seq.CreateSequence(name, s))
+    # partially resolved target without tag
+    trg_rnums = range(10, 151)
+
+    for tagged_mdl_seq in [pep + "HHHHHH", pep + "HHHHHA"]:
+      mdl_seqs = {"1": pep, "2": tagged_mdl_seq}
+      for trg_seqres_mapping in [{"A": "1", "B": "2"}, {"A": "2", "B": "1"}]:
+        trg = _CreatePeptideChains([(cname, seqres_seqs[sname], trg_rnums)
+                                    for cname, sname in
+                                    trg_seqres_mapping.items()])
+        # complete model chains, X modelled after A and Y after B
+        mdl = _CreatePeptideChains([(mdl_cname, mdl_seqs[sname],
+                                     range(1, len(mdl_seqs[sname]) + 1))
+                                    for mdl_cname, sname in
+                                    zip(["X", "Y"],
+                                        trg_seqres_mapping.values())])
+        for resnum_alignments in [False, True]:
+          mapper = ChainMapper(trg, resnum_alignments=resnum_alignments,
+                               seqres = seqres,
+                               trg_seqres_mapping = trg_seqres_mapping)
+          self.assertEqual(mapper.chem_groups, [["A"], ["B"]])
+          chem_mapping, _, _, _ = mapper.GetChemMapping(mdl)
+          self.assertEqual(chem_mapping, [["X"], ["Y"]])
 
 
 
