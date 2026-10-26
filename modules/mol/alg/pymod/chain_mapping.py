@@ -2102,6 +2102,16 @@ class ChainMapper:
             atomseq = ''.join(atomseq)
             alns[seqres_key].AddSequence(seq.CreateSequence(sname, atomseq))
 
+        for aln in alns.values():
+            cnames = [aln.GetSequence(s_idx).GetName()
+                      for s_idx in range(1, aln.GetCount())]
+            snames = list(dict.fromkeys(self.trg_seqres_mapping[cname]
+                                        for cname in cnames))
+            if len(snames) > 1:
+                ost.LogScript(f"Chains {', '.join(cnames)} map to SEQRES "
+                              f"{', '.join(snames)} with identical sequences "
+                              f"and end up in the same chem group")
+
         return [aln for aln in alns.values()]
 
 

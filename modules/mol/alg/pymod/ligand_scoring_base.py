@@ -1144,6 +1144,9 @@ class LigandScorer:
                 #####################################################
                 # Compute score by calling the child class _compute #
                 #####################################################
+                # compute chem groups at the current verbosity level, not
+                # within _SinkVerbosityLevel, which would silence messages
+                self._chain_mapper.chem_groups
                 score, pair_state, target_ligand_state, model_ligand_state, aux\
                  = self._compute(symmetries, target_ligand, model_ligand)
 
