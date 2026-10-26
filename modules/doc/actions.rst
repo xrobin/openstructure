@@ -418,12 +418,11 @@ Details on the usage (output of ``ost compare-structures --help``):
     --seqres SEQRES       Default: None - manually define chem groups by specifying path to a
                           fasta file. Each unique sequence in that file is considered a reference
                           sequence of a chem group. All polymer chains in reference will be
-                          aligned to these sequences. This only works if -rna/--residue-number-
-                          alignment is enabled and an error is raised otherwise. Additionally,
-                          you need to manually specify a mapping of the polymer chains using trg-
-                          seqres-mapping and an error is raised otherwise. The one letter codes
-                          in the structure must exactly match the respective characters in seqres
-                          and an error is raised if not.
+                          aligned to these sequences. Additionally, you need to manually specify
+                          a mapping of the polymer chains using trg-seqres-mapping and an error
+                          is raised otherwise. The one letter codes in the structure must exactly
+                          match the respective characters in seqres and an error is raised if
+                          not.
     --trg-seqres-mapping TRG_SEQRES_MAPPING [TRG_SEQRES_MAPPING ...]
                           Default: None - Maps each polymer chain in reference to a sequence in
                           *seqres*. Each mapping is a key:value pair where key is the chain name
@@ -717,12 +716,11 @@ Details on the usage (output of ``ost compare-ligand-structures --help``):
     --seqres SEQRES       Default: None - manually define chem groups by specifying path to a
                           fasta file. Each unique sequence in that file is considered a reference
                           sequence of a chem group. All polymer chains in reference will be
-                          aligned to these sequences. This only works if -rna/--residue-number-
-                          alignment is enabled and an error is raised otherwise. Additionally,
-                          you need to manually specify a mapping of the polymer chains using trg-
-                          seqres-mapping and an error is raised otherwise. The one letter codes
-                          in the structure must exactly match the respective characters in seqres
-                          and an error is raised if not.
+                          aligned to these sequences. Additionally, you need to manually specify
+                          a mapping of the polymer chains using trg-seqres-mapping and an error
+                          is raised otherwise. The one letter codes in the structure must exactly
+                          match the respective characters in seqres and an error is raised if
+                          not.
     --trg-seqres-mapping TRG_SEQRES_MAPPING [TRG_SEQRES_MAPPING ...]
                           Default: None - Maps each polymer chain in reference to a sequence in
                           *seqres*. Each mapping is a key:value pair where key is the chain name

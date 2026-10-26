@@ -690,9 +690,7 @@ def _ParseArgs():
         help=("Default: None - manually define chem groups by specifying path "
               "to a fasta file. Each unique sequence in that file is considered a "
               "reference sequence of a chem group. All polymer chains "
-              "in reference will be aligned to these sequences. This only works "
-              "if -rna/--residue-number-alignment is enabled and an error is raised "
-              "otherwise. "
+              "in reference will be aligned to these sequences. "
               "Additionally, you need to manually specify a mapping "
               "of the polymer chains using trg-seqres-mapping and an error "
               "is raised otherwise. The one letter codes in the structure must "
@@ -986,7 +984,7 @@ def _Process(model, reference, args, model_format, reference_format,
 
     if args.seqres is not None and args.trg_seqres_mapping is not None:
         seqres = io.LoadSequenceList(args.seqres)
-        trg_seqres_mapping = {x.split(':')[0]: x.split(':')[1] for x in args.chain_mapping}
+        trg_seqres_mapping = {x.split(':')[0]: x.split(':')[1] for x in args.trg_seqres_mapping}
 
     scorer = scoring.Scorer(model, reference,
                             resnum_alignments = args.residue_number_alignment,
