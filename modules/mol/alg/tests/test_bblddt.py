@@ -109,6 +109,26 @@ class TestBBlDDT(unittest.TestCase):
 
         self.assertAlmostEqual(reference_lddt_score, bb_lddt_score, places = 4)
 
+    def test_bb_lddt_scorer_no_overlap(self):
+        # target and model resolve non-overlapping segments of the same
+        # chains, i.e. mapped chain pairs share no aligned residues. Must
+        # not crash, there are simply no conserved contacts.
+        ent = _LoadFile("3l1p.1.pdb")
+        target = ent.Select("cname=A,B and rindex<40")
+        model = ent.Select("cname=A,B and rindex>=80")
+        alns = dict()
+        for cname in ["A", "B"]:
+            trg_s = ''.join([r.one_letter_code for r in \
+                             target.FindChain(cname).residues])
+            mdl_s = ''.join([r.one_letter_code for r in \
+                             model.FindChain(cname).residues])
+            aln = seq.CreateAlignment()
+            aln.AddSequence(seq.CreateSequence(cname, trg_s + '-'*len(mdl_s)))
+            aln.AddSequence(seq.CreateSequence(cname, '-'*len(trg_s) + mdl_s))
+            alns[(cname, cname)] = aln
+        bb_lddt_scorer = BBlDDTScorer(target, [["A", "B"]], model, alns)
+        self.assertEqual(bb_lddt_scorer.Score([["A", "B"]]), 0.0)
+
 if __name__ == "__main__":
     from ost import testutils
     if testutils.DefaultCompoundLibIsSet():

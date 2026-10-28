@@ -547,4 +547,5 @@ class BBlDDTScorer:
                 idx_1 +=1
             if col[1] != '-':
                 idx_2 +=1
-        return (np.array(mapped_indices_1), np.array(mapped_indices_2))
+        return (np.array(mapped_indices_1, dtype=np.int64),
+                np.array(mapped_indices_2, dtype=np.int64))
