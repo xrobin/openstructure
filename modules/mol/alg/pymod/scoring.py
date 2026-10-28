@@ -835,14 +835,31 @@ class Scorer:
         """
         if self._lddt_scorer is None:
             if self.lddt_no_stereochecks:
-                self._lddt_scorer = lDDTScorer(self.target,
+                self._lddt_scorer = lDDTScorer(self._MappableTarget(self.target),
                                                symmetry_settings = self.lddt_symmetry_settings,
                                                inclusion_radius = self.lddt_inclusion_radius)
             else:
-                self._lddt_scorer = lDDTScorer(self.stereochecked_target,
+                self._lddt_scorer = lDDTScorer(self._MappableTarget(self.stereochecked_target),
                                                symmetry_settings = self.lddt_symmetry_settings,
                                                inclusion_radius = self.lddt_inclusion_radius)
         return self._lddt_scorer
+
+    def _MappableTarget(self, trg):
+        """ View *trg* without chains skipped by the chain mapper
+
+        Super short chains are never mapped and must not contribute to LDDT
+        either, as their contacts could never be conserved.
+        """
+        mappable = set(ch.name for ch in self.chain_mapper.target.chains)
+        if len(mappable) == 0:
+            raise RuntimeError("No target residue has the atoms required for "
+                               "chain mapping (N, CA, C, CB for peptides, "
+                               "O5', C5', C4', C3', O3' for nucleotides)")
+        skipped = [ch.name for ch in trg.chains if ch.name not in mappable]
+        if len(skipped) == 0:
+            return trg
+        return trg.Select("not cname=" + ",".join([mol.QueryQuoteName(n)
+                                                    for n in skipped]))
 
     @property
     def bb_lddt_scorer(self):
@@ -855,7 +872,7 @@ class Scorer:
         :type: :class:`ost.mol.alg.lddt.lDDTScorer`
         """
         if self._bb_lddt_scorer is None:
-            self._bb_lddt_scorer = lDDTScorer(self.target, bb_only=True,
+            self._bb_lddt_scorer = lDDTScorer(self._MappableTarget(self.target), bb_only=True,
                                               symmetry_settings = self.lddt_symmetry_settings,
                                               inclusion_radius = self.lddt_inclusion_radius)
         return self._bb_lddt_scorer
@@ -894,6 +911,8 @@ class Scorer:
 
         Computed based on :attr:`~stereochecked_model`. In case of oligomers,
         :attr:`~mapping` is used.
+        Target chains skipped by the chain mapping procedure (happens for super
+        short chains) are not considered.
 
         :type: :class:`float`
         """
@@ -943,6 +962,8 @@ class Scorer:
         Computed based on :attr:`~model` on representative backbone atoms only.
         This is CA for peptides and C3' for nucleotides. No stereochecks are
         performed. In case of oligomers, :attr:`~mapping` is used.
+        Target chains skipped by the chain mapping procedure (happens for super
+        short chains) are not considered.
 
         :type: :class:`float`
         """
@@ -976,6 +997,8 @@ class Scorer:
         such contacts are present. For example if we're dealing with a monomer.
         Computed based on :attr:`~stereochecked_model` and :attr:`~mapping` for
         chain mapping.
+        Target chains skipped by the chain mapping procedure (happens for super
+        short chains) are not considered.
 
         :type: :class:`float`
         """

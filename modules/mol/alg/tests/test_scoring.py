@@ -106,6 +106,21 @@ class TestScorer(unittest.TestCase):
     self.assertTrue(scorer.local_lddt["B"][mol.ResNum(42)] is None)
 
 
+  def test_scorer_lddt_short_chains(self):
+    # target chains skipped by chain mapping (DNA chain D cut to 3
+    # nucleotides, min_nuc_length is 4) must not lower LDDT: self
+    # comparison gives 1.0
+    ent = _LoadFile("3l1p.1.pdb")
+    trg = mol.CreateEntityFromView(ent.Select("cname!=D or rnum=1,2,3"), True)
+    scorer = Scorer(trg, trg)
+    self.assertAlmostEqual(scorer.lddt, 1.0, places=5)
+    self.assertAlmostEqual(scorer.bb_lddt, 1.0, places=5)
+    self.assertAlmostEqual(scorer.ilddt, 1.0, places=5)
+    # no residue with the atoms required for chain mapping (CA only)
+    ca = mol.CreateEntityFromView(ent.Select("peptide=true and aname=CA"), True)
+    scorer = Scorer(ca, ca)
+    self.assertRaises(RuntimeError, lambda: scorer.lddt)
+
   def test_scorer_qsscore(self):
 
     mdl = _LoadFile("1eud_mdl_partial-dimer.pdb")

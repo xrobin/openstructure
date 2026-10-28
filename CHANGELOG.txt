@@ -23,6 +23,7 @@ Changes in develop
  * Chain mapping assigns model chains to the chem group with the highest
    sequence identity relative to the longer of the two sequences. Ties are
    broken by the number of identical aligned residues.
+ * LDDT scores no longer penalizes short unmapped reference chains
  * Minor bugfixes
 
 
