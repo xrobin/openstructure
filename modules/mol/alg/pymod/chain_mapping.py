@@ -502,8 +502,7 @@ class ChainMapper:
       entity information. Alignments are performed based on residue numbers
       in this case and don't consider the *resnum_alignments* flag. Any
       mismatch of one letter code in the structure and the respective SEQRES
-      raises an error. '?' and 'X' both denote non-standard/unknown compounds
-      and are considered equal. Chains mapping to identical SEQRES end up in
+      raises an error. Chains mapping to identical SEQRES end up in
       the same group, as model chains could not be assigned to one or the
       other in the next step. This happens e.g. with mmCIF entities only
       differing by modified residues such as SEP vs. SER (one letter code S).
@@ -2089,8 +2088,8 @@ class ChainMapper:
                     raise RuntimeError(f"Observed residue with invalid number: "
                                        f"\"{r}\" which cannot be aligned to "
                                        f"seqres with id \"{seqres_name}\"")
-                # '?' and 'X' both denote non-standard/unknown compounds, e.g.
-                # MMCifReader.GetSeqRes reports compounds with olc '?' as 'X'
+                # '?' and 'X' both denote non-standard/unknown compounds and
+                # count as identical
                 if olc != seqres[num-1] and \
                    not {olc, seqres[num-1]} <= {'?', 'X'}:
                     raise RuntimeError(f"Sequence mismatch of residue \"{r}\" "
@@ -2292,10 +2291,14 @@ class ChainMapper:
                     aln = self.ResNumAlign(ref_seq, s, self.target, s_ent)
                 else:
                     aln = self.NWAlign(ref_seq, s, s_type)
-                seqid, n_aligned = _GetAlnPropsOne(aln)
-                score = seq.alg.SequenceIdentity(aln, seq.alg.RefMode.LONGER_SEQUENCE)
+                # '?' and 'X' both denote non-standard/unknown compounds and
+                # count as identical
+                id_aln = seq.CreateAlignment(*[seq.CreateSequence(x.name,
+                    x.GetString().replace('?', 'X')) for x in aln.sequences])
+                seqid, n_aligned = _GetAlnPropsOne(id_aln)
+                score = seq.alg.SequenceIdentity(id_aln, seq.alg.RefMode.LONGER_SEQUENCE)
                 # tie breaker: number of identical aligned residues
-                n_identical = sum([1 for col in aln
+                n_identical = sum([1 for col in id_aln
                                    if col[0] != '-' and col[0] == col[1]])
                 if seq_id_thr > 0:
                     if seqid >= seq_id_thr and n_aligned >= min_aln_length:

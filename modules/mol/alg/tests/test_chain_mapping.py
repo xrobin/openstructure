@@ -577,6 +577,27 @@ class TestChainMapper(unittest.TestCase):
 
 
 
+  def test_chem_mapping_unknown_olc(self):
+    # Non-standard residues have one letter code '?' in the structure but
+    # 'X' in SEQRES. They must count as identical when mapping model chains
+    # onto chem groups, otherwise chains with many non-standard residues
+    # (here 4 of 10) fall below the sequence identity threshold.
+    # Also the other way round, e.g. UNK ('X') vs. user provided SEQRES.
+    for olc, seqres_olc in [('?', 'X'), ('X', '?')]:
+      seqres = seq.CreateSequenceList()
+      seqres.AddSequence(seq.CreateSequence("1",
+                                            "A#G##S#LKA".replace('#', seqres_olc)))
+      trg = _CreatePeptideChains([("A", "AAGAASALKA", range(1, 11))])
+      for r in trg.residues:
+        if seqres[0][r.number.num-1] == seqres_olc:
+          r.SetOneLetterCode(olc)
+      for resnum_alignments in [False, True]:
+        mapper = ChainMapper(trg, resnum_alignments=resnum_alignments,
+                             seqres=seqres, trg_seqres_mapping={"A": "1"},
+                             mdl_map_pep_seqid_thr=70.0)
+        chem_mapping = mapper.GetChemMapping(trg)[0]
+        self.assertEqual(chem_mapping, [["A"]])
+
   def test_misc(self):
 
       # check for triggered error when no chain fulfills length threshold
