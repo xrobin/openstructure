@@ -2254,6 +2254,7 @@ class ChainMapper:
         Computes alignments of *s* to each of the reference sequences of equal type
         and sorts them by sequence identity relative to the length of the
         longer of the two sequences (seq.alg.RefMode.LONGER_SEQUENCE).
+        Ties are broken by the number of identical aligned residues.
         Best scoring mapping is returned. Optionally, *seq_id_thr*/
         *min_aln_length* thresholds can be enabled to avoid non-sensical mappings.
         However, *min_aln_length* only has an effect if *seq_id_thr* > 0!!!
@@ -2293,17 +2294,21 @@ class ChainMapper:
                     aln = self.NWAlign(ref_seq, s, s_type)
                 seqid, n_aligned = _GetAlnPropsOne(aln)
                 score = seq.alg.SequenceIdentity(aln, seq.alg.RefMode.LONGER_SEQUENCE)
+                # tie breaker: number of identical aligned residues
+                n_identical = sum([1 for col in aln
+                                   if col[0] != '-' and col[0] == col[1]])
                 if seq_id_thr > 0:
                     if seqid >= seq_id_thr and n_aligned >= min_aln_length:
-                        scored_alns.append((score, ref_idx, aln))
+                        scored_alns.append((score, n_identical, ref_idx, aln))
                 else:
-                    scored_alns.append((score, ref_idx, aln))
+                    scored_alns.append((score, n_identical, ref_idx, aln))
     
         if len(scored_alns) == 0:
             return (None, None) # no mapping possible...
     
-        scored_alns = sorted(scored_alns, key=lambda x: x[0], reverse=True)
-        return (scored_alns[0][1], scored_alns[0][2])
+        scored_alns = sorted(scored_alns, key=lambda x: (x[0], x[1]),
+                             reverse=True)
+        return (scored_alns[0][2], scored_alns[0][3])
 
 def _GetAlnPropsOne(aln):
     

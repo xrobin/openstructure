@@ -21,7 +21,8 @@ Changes in develop
    differing by modified residues (SEP vs. SER). Chem groups thus no longer
    correspond one-to-one to entities.
  * Chain mapping assigns model chains to the chem group with the highest
-   sequence identity relative to the longer of the two sequences.
+   sequence identity relative to the longer of the two sequences. Ties are
+   broken by the number of identical aligned residues.
  * Minor bugfixes
 
 
